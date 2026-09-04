@@ -1,0 +1,304 @@
+import { cache } from "react";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { createHash, randomBytes } from "node:crypto";
+import { SignJWT, jwtVerify } from "jose";
+import bcrypt from "bcryptjs";
+import { prisma } from "./prisma";
+import type { Role } from "./constants";
+
+export const SESSION_COOKIE = "sktes_session";
+export const MFA_COOKIE = "sktes_mfa_pending";
+const SESSION_DAYS = 7;
+
+/** Failed sign-ins tolerated before the account locks. */
+export const MAX_FAILED_LOGINS = 5;
+export const LOCK_MINUTES = 15;
+
+const secretKey = new TextEncoder().encode(
+  process.env.SESSION_SECRET ?? "insecure-development-secret-change-me"
+);
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+export async function clientIp(): Promise<string> {
+  const h = await headers();
+  return (
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    h.get("x-real-ip") ??
+    "127.0.0.1"
+  );
+}
+
+export async function userAgent(): Promise<string> {
+  return (await headers()).get("user-agent") ?? "unknown";
+}
+
+// --- session ---------------------------------------------------------------
+
+export async function createSession(userId: string): Promise<void> {
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
+
+  await prisma.session.create({
+    data: {
+      userId,
+      tokenHash: sha256(token),
+      expiresAt,
+      ip: await clientIp(),
+      userAgent: await userAgent(),
+    },
+  });
+
+  const store = await cookies();
+  store.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+export async function destroySession(): Promise<void> {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (token) {
+    await prisma.session
+      .deleteMany({ where: { tokenHash: sha256(token) } })
+      .catch(() => undefined);
+  }
+  store.delete(SESSION_COOKIE);
+}
+
+export type SessionUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  locale: string;
+  timezone: string;
+  status: string;
+  mfaEnabled: boolean;
+  companyId: string | null;
+  company: {
+    id: string;
+    name: string;
+    nameEn: string;
+    type: string;
+    status: string;
+    countryCode: string;
+    bidLimitCents: number | null;
+  } | null;
+};
+
+/**
+ * Resolved once per request thanks to React cache, so a page that asks for
+ * the current user in five places still performs one query.
+ */
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: sha256(token) },
+    include: { user: { include: { company: true } } },
+  });
+
+  if (!session || session.expiresAt < new Date()) return null;
+  const u = session.user;
+  if (u.status === "DISABLED") return null;
+
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role as Role,
+    locale: u.locale,
+    timezone: u.timezone,
+    status: u.status,
+    mfaEnabled: u.mfaEnabled,
+    companyId: u.companyId,
+    company: u.company
+      ? {
+          id: u.company.id,
+          name: u.company.name,
+          nameEn: u.company.nameEn,
+          type: u.company.type,
+          status: u.company.status,
+          countryCode: u.company.countryCode,
+          bidLimitCents: u.company.bidLimitCents,
+        }
+      : null,
+  };
+});
+
+export async function requireUser(): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+export async function requireRole(...roles: Role[]): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!roles.includes(user.role)) redirect("/denied");
+  return user;
+}
+
+/** A buyer may only place bids once their company has cleared review. */
+export function canBid(user: SessionUser): boolean {
+  return (
+    user.role === "BIDDER" &&
+    user.status === "ACTIVE" &&
+    (user.company?.status === "APPROVED" || user.company?.status === "PROVISIONAL")
+  );
+}
+
+// --- credentials -----------------------------------------------------------
+
+export function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, 10);
+}
+
+export function verifyPassword(plain: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(plain, hash);
+}
+
+export type LoginOutcome =
+  | { ok: true; userId: string; mfaRequired: boolean }
+  | { ok: false; reason: "INVALID" | "LOCKED" | "DISABLED"; lockedUntil?: Date };
+
+export async function attemptLogin(
+  email: string,
+  password: string
+): Promise<LoginOutcome> {
+  const user = await prisma.user.findUnique({
+    where: { email: email.trim().toLowerCase() },
+  });
+
+  // Same generic answer whether the address exists or not, so the form
+  // cannot be used to discover which addresses are registered.
+  if (!user) return { ok: false, reason: "INVALID" };
+
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    return { ok: false, reason: "LOCKED", lockedUntil: user.lockedUntil };
+  }
+  if (user.status === "DISABLED") return { ok: false, reason: "DISABLED" };
+
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    const failed = user.failedLoginCount + 1;
+    const lock = failed >= MAX_FAILED_LOGINS;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginCount: lock ? 0 : failed,
+        lockedUntil: lock ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null,
+        status: lock ? "LOCKED" : user.status,
+      },
+    });
+    return lock
+      ? {
+          ok: false,
+          reason: "LOCKED",
+          lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60_000),
+        }
+      : { ok: false, reason: "INVALID" };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      failedLoginCount: 0,
+      lockedUntil: null,
+      status: user.status === "LOCKED" ? "ACTIVE" : user.status,
+      lastLoginAt: new Date(),
+    },
+  });
+
+  return { ok: true, userId: user.id, mfaRequired: user.mfaEnabled };
+}
+
+// --- the short-lived ticket between password and MFA -----------------------
+
+export async function issueMfaTicket(userId: string): Promise<void> {
+  const jwt = await new SignJWT({ uid: userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(secretKey);
+
+  const store = await cookies();
+  store.set(MFA_COOKIE, jwt, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 300,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+export async function readMfaTicket(): Promise<string | null> {
+  const store = await cookies();
+  const jwt = store.get(MFA_COOKIE)?.value;
+  if (!jwt) return null;
+  try {
+    const { payload } = await jwtVerify(jwt, secretKey);
+    return typeof payload.uid === "string" ? payload.uid : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearMfaTicket(): Promise<void> {
+  (await cookies()).delete(MFA_COOKIE);
+}
+
+// --- password reset --------------------------------------------------------
+
+export async function createPasswordResetToken(userId: string): Promise<string> {
+  const token = randomBytes(24).toString("hex");
+  await prisma.passwordResetToken.create({
+    data: {
+      userId,
+      tokenHash: sha256(token),
+      expiresAt: new Date(Date.now() + 60 * 60_000),
+    },
+  });
+  return token;
+}
+
+export async function consumePasswordResetToken(
+  token: string,
+  newPassword: string
+): Promise<boolean> {
+  const row = await prisma.passwordResetToken.findUnique({
+    where: { tokenHash: sha256(token) },
+  });
+  if (!row || row.usedAt || row.expiresAt < new Date()) return false;
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: row.userId },
+      data: {
+        passwordHash: await hashPassword(newPassword),
+        failedLoginCount: 0,
+        lockedUntil: null,
+        status: "ACTIVE",
+      },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: row.id },
+      data: { usedAt: new Date() },
+    }),
+    // Every other session is dropped, because a password reset is exactly the
+    // moment you want any hijacked session to stop working.
+    prisma.session.deleteMany({ where: { userId: row.userId } }),
+  ]);
+  return true;
+}
+
+export { sha256 };

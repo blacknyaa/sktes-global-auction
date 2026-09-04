@@ -1,0 +1,117 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import {
+  hashPassword,
+  requireUser,
+  sha256,
+  verifyPassword,
+} from "@/lib/auth";
+import { generateTotpSecret, verifyTotp } from "@/lib/totp";
+import { writeAudit } from "@/lib/audit";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE } from "@/lib/auth";
+
+export type SecurityState = { ok?: string; error?: string };
+
+/** Creates a secret but leaves MFA switched off until a code is verified. */
+export async function beginMfaAction(): Promise<void> {
+  const user = await requireUser();
+  const existing = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!existing?.mfaSecret) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { mfaSecret: generateTotpSecret(), mfaEnabled: false },
+    });
+  }
+  revalidatePath("/settings/security");
+}
+
+export async function enableMfaAction(
+  _prev: SecurityState,
+  formData: FormData
+): Promise<SecurityState> {
+  const user = await requireUser();
+  const row = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!row?.mfaSecret) return { error: "SETUP" };
+
+  const code = String(formData.get("code") ?? "");
+  if (!verifyTotp(row.mfaSecret, code)) return { error: "INVALID" };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { mfaEnabled: true },
+  });
+  await writeAudit({
+    actorUserId: user.id,
+    actorLabel: user.name,
+    action: "MFA_ENROLLED",
+    summary: `${user.email} が多要素認証を有効にしました`,
+  });
+  revalidatePath("/settings/security");
+  return { ok: "ENABLED" };
+}
+
+export async function disableMfaAction(): Promise<void> {
+  const user = await requireUser();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { mfaEnabled: false, mfaSecret: null },
+  });
+  await writeAudit({
+    actorUserId: user.id,
+    actorLabel: user.name,
+    action: "MFA_ENROLLED",
+    summary: `${user.email} が多要素認証を無効にしました`,
+  });
+  revalidatePath("/settings/security");
+}
+
+export async function changePasswordAction(
+  _prev: SecurityState,
+  formData: FormData
+): Promise<SecurityState> {
+  const user = await requireUser();
+  const current = String(formData.get("current") ?? "");
+  const next = String(formData.get("next") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (next !== confirm) return { error: "MISMATCH" };
+  if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(next)) return { error: "POLICY" };
+
+  const row = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!row || !(await verifyPassword(current, row.passwordHash))) {
+    return { error: "CURRENT" };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await hashPassword(next) },
+  });
+  await writeAudit({
+    actorUserId: user.id,
+    actorLabel: user.name,
+    action: "PASSWORD_RESET",
+    summary: `${user.email} がパスワードを変更しました`,
+  });
+  return { ok: "CHANGED" };
+}
+
+export async function revokeOtherSessionsAction(): Promise<void> {
+  const user = await requireUser();
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  await prisma.session.deleteMany({
+    where: {
+      userId: user.id,
+      ...(token ? { NOT: { tokenHash: sha256(token) } } : {}),
+    },
+  });
+  await writeAudit({
+    actorUserId: user.id,
+    actorLabel: user.name,
+    action: "ADMIN_ACTION",
+    summary: `${user.email} が他端末のセッションを破棄しました`,
+  });
+  revalidatePath("/settings/security");
+}

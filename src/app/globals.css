@@ -1,0 +1,371 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Design tokens.
+   The client asked for a blue scheme reading as trustworthy, stable and
+   professional, so the palette is built on a single deep navy-to-azure ramp
+   with restrained accents. Every colour is defined once here; components
+   never hard-code a hex value.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --brand-50: #eef5ff;
+  --brand-100: #d9e8ff;
+  --brand-200: #bcd7ff;
+  --brand-300: #8ebeff;
+  --brand-400: #5c9cfa;
+  --brand-500: #337aef;
+  --brand-600: #1f5cd8;
+  --brand-700: #1a48ad;
+  --brand-800: #1a3d8a;
+  --brand-900: #19356e;
+  --brand-950: #0d1f45;
+
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #eef2f8;
+  --line: #dde5ef;
+  --line-strong: #c3d0e0;
+  --ink: #0f1b2d;
+  --ink-2: #33445c;
+  --muted: #64748b;
+
+  --brand: var(--brand-700);
+  --brand-hover: var(--brand-800);
+  --on-brand: #ffffff;
+
+  --success: #147a4a;
+  --success-bg: #e6f6ee;
+  --warn: #9a5b06;
+  --warn-bg: #fdf2e0;
+  --danger: #b3261e;
+  --danger-bg: #fdeceb;
+  --info: var(--brand-700);
+  --info-bg: var(--brand-50);
+  --seal: #4a3fbe;
+  --seal-bg: #eeecfd;
+
+  --shadow-sm: 0 1px 2px rgb(15 27 45 / 0.06), 0 1px 3px rgb(15 27 45 / 0.04);
+  --shadow-md: 0 4px 12px rgb(15 27 45 / 0.08), 0 1px 3px rgb(15 27 45 / 0.04);
+  --shadow-lg: 0 12px 32px rgb(15 27 45 / 0.12), 0 2px 8px rgb(15 27 45 / 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #080e1a;
+    --surface: #0f172a;
+    --surface-2: #131e35;
+    --surface-3: #1a2740;
+    --line: #22304c;
+    --line-strong: #33445f;
+    --ink: #e8eefa;
+    --ink-2: #b8c6dd;
+    --muted: #8296b4;
+
+    --brand: var(--brand-400);
+    --brand-hover: var(--brand-300);
+    --on-brand: #06132b;
+
+    --success: #5fd39b;
+    --success-bg: #102b21;
+    --warn: #efb254;
+    --warn-bg: #2e2312;
+    --danger: #f78c85;
+    --danger-bg: #331816;
+    --info: var(--brand-300);
+    --info-bg: #12233f;
+    --seal: #a89dff;
+    --seal-bg: #1c1a3a;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #080e1a;
+  --surface: #0f172a;
+  --surface-2: #131e35;
+  --surface-3: #1a2740;
+  --line: #22304c;
+  --line-strong: #33445f;
+  --ink: #e8eefa;
+  --ink-2: #b8c6dd;
+  --muted: #8296b4;
+
+  --brand: var(--brand-400);
+  --brand-hover: var(--brand-300);
+  --on-brand: #06132b;
+
+  --success: #5fd39b;
+  --success-bg: #102b21;
+  --warn: #efb254;
+  --warn-bg: #2e2312;
+  --danger: #f78c85;
+  --danger-bg: #331816;
+  --info: var(--brand-300);
+  --info-bg: #12233f;
+  --seal: #a89dff;
+  --seal-bg: #1c1a3a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-seal: var(--seal);
+  --color-seal-bg: var(--seal-bg);
+
+  --font-sans: "Inter", "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "Yu Gothic UI", "Meiryo", "Noto Sans JP", "Microsoft YaHei", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Mono", "Menlo", "Consolas",
+    "Liberation Mono", monospace;
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "palt" 1;
+}
+
+/* Japanese text needs a little more line height than the Tailwind default. */
+p,
+li,
+dd {
+  line-height: 1.8;
+}
+
+::selection {
+  background: var(--brand-200);
+  color: var(--brand-950);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- component primitives ------------------------------------------------ */
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.875rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card-flat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.875rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.625rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    border: 1px solid transparent;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.08s ease;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--brand);
+    color: var(--on-brand);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--brand-hover);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-2);
+    border-color: var(--line-strong);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--surface-3);
+    color: var(--ink);
+  }
+
+  .btn-subtle {
+    background: var(--surface-3);
+    color: var(--ink-2);
+  }
+  .btn-subtle:hover:not(:disabled) {
+    background: var(--line);
+    color: var(--ink);
+  }
+
+  .btn-danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--ink);
+  }
+  .input::placeholder {
+    color: var(--muted);
+  }
+  .input:focus {
+    outline: 2px solid var(--brand);
+    outline-offset: -1px;
+    border-color: var(--brand);
+  }
+
+  .label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 0.35rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 0.875rem;
+    background: var(--surface);
+  }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .table th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 0.7rem 0.9rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .table td {
+    padding: 0.75rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .table tbody tr:hover td {
+    background: var(--surface-2);
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes pulse-seal {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.animate-seal {
+  animation: pulse-seal 2.4s ease-in-out infinite;
+}
+
+/* --- print ---------------------------------------------------------------- */
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body {
+    background: #fff;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}

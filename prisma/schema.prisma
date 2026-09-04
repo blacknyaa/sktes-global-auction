@@ -1,0 +1,512 @@
+// ---------------------------------------------------------------------------
+// SK TES Global Auction Platform - data model
+// Money is stored as integer cents in the platform currency (USD).
+// All DateTime values are stored in UTC and rendered in each viewer timezone.
+// SQLite is used for the demo; the model is written so that switching the
+// provider to postgresql requires only the datasource block to change.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- master ----------------------------------------------------------------
+
+model Country {
+  code          String    @id // ISO 3166-1 alpha-2
+  nameJa        String
+  nameEn        String
+  nameZh        String
+  region        String // ASIA / OCEANIA / NORTH_AMERICA / SOUTH_AMERICA / EUROPE / MIDDLE_EAST / AFRICA
+  timezone      String // IANA timezone
+  currency      String
+  isSellerSite  Boolean   @default(false)
+  privacyRegime String    @default("NONE") // GDPR / PIPL / APPI / NONE
+  companies     Company[]
+  lots          Lot[]
+}
+
+model Category {
+  code      String @id
+  nameJa    String
+  nameEn    String
+  nameZh    String
+  sortOrder Int    @default(0)
+  lots      Lot[]
+}
+
+// --- membership ------------------------------------------------------------
+
+model Company {
+  id                 String    @id @default(cuid())
+  type               String // SELLER / BUYER
+  name               String
+  nameEn             String
+  countryCode        String
+  country            Country   @relation(fields: [countryCode], references: [code])
+  corporateNumber    String?
+  contactName        String
+  contactEmail       String
+  contactPhone       String
+  hqAddress          String
+  branchAddress      String?
+  exportDestinations String    @default("[]") // JSON array of country codes
+  hasImportLicense   Boolean   @default(false)
+  antiqueLicenseNo   String? // Japanese buyers only
+  status             String    @default("PENDING") // PENDING / UNDER_REVIEW / PROVISIONAL / APPROVED / SUSPENDED / EXPELLED
+  bidLimitCents      Int? // null = no limit. Set while PROVISIONAL.
+  termsAcceptedAt    DateTime?
+  appliedAt          DateTime  @default(now())
+  reviewedAt         DateTime?
+  approvedAt         DateTime?
+  reviewNote         String?
+  riskScore          Int       @default(0)
+
+  users        User[]
+  documents    CompanyDocument[]
+  lots         Lot[]             @relation("SellerLots")
+  bids         Bid[]
+  awards       Award[]
+  questions    Question[]
+  fraudSignals FraudSignal[]
+
+  @@index([type, status])
+  @@index([countryCode])
+}
+
+model CompanyDocument {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  kind         String // REGISTRY / ANTIQUE_LICENSE / ID_DOCUMENT / IMPORT_LICENSE
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  status       String    @default("PENDING") // PENDING / APPROVED / REJECTED
+  reviewedById String?
+  reviewedAt   DateTime?
+  rejectReason String?
+  uploadedAt   DateTime  @default(now())
+
+  @@index([companyId])
+}
+
+model User {
+  id               String    @id @default(cuid())
+  companyId        String?
+  company          Company?  @relation(fields: [companyId], references: [id])
+  email            String    @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  role             String // SELLER / BIDDER / ADMIN
+  locale           String    @default("ja")
+  timezone         String    @default("Asia/Tokyo")
+  status           String    @default("ACTIVE") // ACTIVE / LOCKED / DISABLED
+  mfaEnabled       Boolean   @default(false)
+  mfaSecret        String?
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  sessions      Session[]
+  resetTokens   PasswordResetToken[]
+  bids          Bid[]
+  createdLots   Lot[]                @relation("LotCreator")
+  awardsMade    Award[]              @relation("AwardSelector")
+  questions     Question[]
+  answers       Answer[]
+  auditLogs     AuditLog[]
+  accessLogs    AccessLog[]
+  notifications Notification[]
+
+  @@index([companyId])
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// --- listing ---------------------------------------------------------------
+
+model Lot {
+  id               String   @id @default(cuid())
+  lotNumber        String   @unique
+  title            String
+  titleEn          String
+  description      String?
+  categoryCode     String
+  category         Category @relation(fields: [categoryCode], references: [code])
+  condition        String // NEW_SEALED / NEW_OPENED / USED_WORKING / USED_JUNK / PARTS_TESTED / PARTS_UNTESTED
+  sellerCompanyId  String
+  sellerCompany    Company  @relation("SellerLots", fields: [sellerCompanyId], references: [id])
+  countryCode      String
+  country          Country  @relation(fields: [countryCode], references: [code])
+  quantity         Int
+  storageLocation  String
+  handoverLocation String
+  currency         String   @default("USD")
+  reserveCents     Int?
+  minimumBidCents  Int      @default(0)
+
+  auctionType         String    @default("SEALED") // SEALED (phase 1) / OPEN (phase 2)
+  startAt             DateTime
+  endAt               DateTime
+  extensionEnabled    Boolean   @default(false)
+  extensionTriggerMin Int       @default(5)
+  extensionMinutes    Int       @default(5)
+  extendedUntil       DateTime?
+  extensionCount      Int       @default(0)
+
+  status       String    @default("DRAFT") // DRAFT / SCHEDULED / OPEN / CLOSED / AWARDED / CANCELLED / FAILED
+  publishedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  // sealed-bid cryptography
+  sealPublicKey    String? // PEM, public. Used to encrypt each incoming bid.
+  sealedPrivateKey String? // AES-256-GCM ciphertext of the PEM private key
+  sealIv           String?
+  sealAuthTag      String?
+  openedAt         DateTime?
+  openedById       String?
+
+  imageKey    String?
+  createdById String
+  createdBy   User     @relation("LotCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       LotItem[]
+  attachments LotAttachment[]
+  bids        Bid[]
+  award       Award?
+  questions   Question[]
+  watches     Watch[]
+
+  @@index([status, endAt])
+  @@index([sellerCompanyId])
+  @@index([categoryCode])
+  @@index([countryCode])
+}
+
+// One row per line of the seller Excel manifest. This is what makes
+// spec-level search across lot contents possible.
+model LotItem {
+  id       String  @id @default(cuid())
+  lotId    String
+  lot      Lot     @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  lineNo   Int
+  maker    String
+  model    String
+  cpu      String?
+  ramGb    Int?
+  storage  String?
+  gpu      String?
+  screen   String?
+  grade    String?
+  quantity Int     @default(1)
+  note     String?
+
+  @@index([lotId])
+  @@index([maker])
+  @@index([model])
+}
+
+model LotAttachment {
+  id         String   @id @default(cuid())
+  lotId      String
+  lot        Lot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  kind       String // EXCEL / IMAGE / OTHER
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String
+  uploadedAt DateTime @default(now())
+
+  @@index([lotId])
+}
+
+model Watch {
+  id        String   @id @default(cuid())
+  userId    String
+  lotId     String
+  lot       Lot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, lotId])
+}
+
+// --- bidding ---------------------------------------------------------------
+
+model Bid {
+  id              String  @id @default(cuid())
+  lotId           String
+  lot             Lot     @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  bidderCompanyId String
+  bidderCompany   Company @relation(fields: [bidderCompanyId], references: [id])
+  userId          String
+  user            User    @relation(fields: [userId], references: [id])
+  sequence        Int     @default(1) // increments on re-bid
+
+  // Sealed-bid payload. amountCents stays null until the lot is opened.
+  ciphertext     String
+  commitmentHash String // SHA-256 over amount + nonce, proves the bid was not altered
+  nonce          String
+  amountCents    Int?
+
+  status      String    @default("SEALED") // SEALED / REVEALED / CANCELLED / SUPERSEDED
+  submittedAt DateTime  @default(now())
+  revealedAt  DateTime?
+  cancelledAt DateTime?
+  ip          String?
+  note        String?
+
+  award Award?
+
+  @@index([lotId, status])
+  @@index([bidderCompanyId])
+}
+
+model Question {
+  id             String   @id @default(cuid())
+  lotId          String
+  lot            Lot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  askerCompanyId String
+  askerCompany   Company  @relation(fields: [askerCompanyId], references: [id])
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  body           String
+  isPublic       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  answer         Answer?
+
+  @@index([lotId])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  questionId String   @unique
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  body       String
+  createdAt  DateTime @default(now())
+}
+
+// --- award, contract, money ------------------------------------------------
+
+model Award {
+  id              String   @id @default(cuid())
+  lotId           String   @unique
+  lot             Lot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  bidId           String   @unique
+  bid             Bid      @relation(fields: [bidId], references: [id])
+  winnerCompanyId String
+  winnerCompany   Company  @relation(fields: [winnerCompanyId], references: [id])
+  amountCents     Int
+  currency        String   @default("USD")
+  rankAmongBids   Int // 1 = highest bid
+  isHighestBid    Boolean
+  reason          String // required when the highest bid was not selected
+  selectedById    String
+  selectedBy      User     @relation("AwardSelector", fields: [selectedById], references: [id])
+  selectedAt      DateTime @default(now())
+
+  contract Contract?
+}
+
+model Contract {
+  id           String    @id @default(cuid())
+  awardId      String    @unique
+  award        Award     @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  contractNo   String    @unique
+  status       String    @default("AWARDED") // AWARDED / IN_CONTRACT / AWAITING_PAYMENT / DELIVERED / COMPLETED
+  amountCents  Int
+  currency     String    @default("USD")
+  fxRate       Float? // rate captured at award time, for JPY invoicing
+  fxCurrency   String?
+  fxCapturedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  invoices  Invoice[]
+  shipments Shipment[]
+}
+
+model Invoice {
+  id                 String    @id @default(cuid())
+  contractId         String
+  contract           Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  invoiceNo          String    @unique
+  taxTreatment       String // DOMESTIC_JP_10 / EXPORT_EXEMPT
+  subtotalCents      Int
+  taxCents           Int
+  totalCents         Int
+  currency           String    @default("USD")
+  qualifiedInvoiceNo String? // T + 13 digits, domestic Japanese buyers only
+  paymentMethod      String? // BANK_TRANSFER / CREDIT_CARD / PAYPAL / INVOICE_TERMS
+  status             String    @default("ISSUED") // ISSUED / PAID / CANCELLED
+  issuedAt           DateTime  @default(now())
+  dueAt              DateTime
+  paidAt             DateTime?
+
+  payments Payment[]
+  receipt  Receipt?
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  method        String
+  amountCents   Int
+  currency      String   @default("USD")
+  reference     String?
+  paidAt        DateTime @default(now())
+  confirmedById String?
+}
+
+model Receipt {
+  id          String   @id @default(cuid())
+  invoiceId   String   @unique
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  receiptNo   String   @unique
+  isQualified Boolean  @default(false) // qualified invoice receipt, Japanese domestic only
+  issuedAt    DateTime @default(now())
+}
+
+// --- logistics -------------------------------------------------------------
+
+model Shipment {
+  id                String    @id @default(cuid())
+  contractId        String
+  contract          Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  carrier           String?
+  trackingNo        String?
+  incoterms         String?
+  status            String    @default("REQUESTED") // REQUESTED / PICKUP_ARRANGED / SHIPPED / RECEIVED
+  shipRequestedAt   DateTime?
+  pickupRequestedAt DateTime?
+  shippedAt         DateTime?
+  receivedAt        DateTime?
+  note              String?
+
+  defects DefectReport[]
+}
+
+model DefectReport {
+  id           String    @id @default(cuid())
+  shipmentId   String
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  reportedById String
+  body         String
+  status       String    @default("OPEN") // OPEN / IN_REVIEW / RESOLVED
+  createdAt    DateTime  @default(now())
+  resolvedAt   DateTime?
+}
+
+// --- notifications, audit, fraud -------------------------------------------
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
+  channel     String    @default("EMAIL") // EMAIL / SMS / TEAMS / LINE / WHATSAPP / WECHAT
+  templateKey String
+  toAddress   String
+  subject     String
+  body        String
+  locale      String    @default("ja")
+  status      String    @default("QUEUED") // QUEUED / SENT / FAILED
+  relatedType String?
+  relatedId   String?
+  createdAt   DateTime  @default(now())
+  sentAt      DateTime?
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorUserId    String?
+  actor          User?    @relation(fields: [actorUserId], references: [id])
+  actorLabel     String // kept denormalised so the log survives user deletion
+  action         String // LOGIN / LOT_CREATE / BID_SUBMIT / AMOUNT_CHANGE / AWARD_CONFIRM / ADMIN_ACTION ...
+  targetType     String?
+  targetId       String?
+  summary        String
+  detail         String? // JSON
+  ip             String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  retentionUntil DateTime // createdAt + 7 years
+
+  @@index([action, createdAt])
+  @@index([actorUserId])
+}
+
+model AccessLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  ip         String
+  country    String?
+  method     String
+  path       String
+  statusCode Int
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([ip])
+}
+
+model FraudSignal {
+  id        String   @id @default(cuid())
+  kind      String // MULTI_ACCOUNT / ABNORMAL_BID / ACCESS_ANOMALY
+  severity  String // LOW / MEDIUM / HIGH
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  lotId     String?
+  summary   String
+  detail    String? // JSON
+  status    String   @default("OPEN") // OPEN / REVIEWING / DISMISSED / CONFIRMED
+  createdAt DateTime @default(now())
+
+  @@index([status, severity])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
