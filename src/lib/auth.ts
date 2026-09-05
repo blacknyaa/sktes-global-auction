@@ -6,6 +6,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import type { Role } from "./constants";
+import { sessionSecret } from "./runtime";
 
 export const SESSION_COOKIE = "sktes_session";
 export const MFA_COOKIE = "sktes_mfa_pending";
@@ -16,7 +17,7 @@ export const MAX_FAILED_LOGINS = 5;
 export const LOCK_MINUTES = 15;
 
 const secretKey = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "insecure-development-secret-change-me"
+  sessionSecret()
 );
 
 function sha256(value: string): string {
