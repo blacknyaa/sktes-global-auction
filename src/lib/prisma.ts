@@ -26,6 +26,52 @@ function clampSqlitePool(url: string): string {
 }
 
 /**
+ * A serverless host runs many short-lived instances, each with its own pool.
+ * Against a connection pooler that multiplies quickly, so each instance keeps
+ * a single connection and waits rather than opening more. `pgbouncer=true`
+ * tells Prisma not to use prepared statements, which a transaction-mode pooler
+ * cannot carry between queries.
+ */
+function tunePostgresPool(url: string): string {
+  if (!url.startsWith("postgres")) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  const additions = [];
+  if (!url.includes("connection_limit=")) additions.push("connection_limit=1");
+  if (!url.includes("pool_timeout=")) additions.push("pool_timeout=20");
+  if (url.includes("-pooler") && !url.includes("pgbouncer=")) {
+    additions.push("pgbouncer=true");
+  }
+  return additions.length ? `${url}${sep}${additions.join("&")}` : url;
+}
+
+/**
+ * Errors that mean the query never reached the database, so running it again
+ * cannot duplicate anything. A bid that vanishes because a connection was
+ * briefly unavailable is the worst failure this system has, and it is silent:
+ * the bidder sees no error and no bid. Anything ambiguous is deliberately left
+ * out of this list.
+ */
+const RETRYABLE = new Set([
+  "P2024", // timed out waiting for a connection from the pool
+  "P1001", // cannot reach the database server
+]);
+
+async function withRetry<T>(run: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await run();
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (!code || !RETRYABLE.has(code)) throw e;
+      lastError = e;
+      await new Promise((r) => setTimeout(r, 150 * 2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Copies the database that was seeded at build time into the one writable
  * directory a serverless host offers, so an unconfigured deployment is still a
  * working demonstration rather than an error page.
@@ -56,7 +102,7 @@ function bootstrapBundledDemoDb(): string {
 
 function datasourceUrl(): string | undefined {
   const configured = resolveDatabaseUrl();
-  if (configured) return clampSqlitePool(configured);
+  if (configured) return tunePostgresPool(clampSqlitePool(configured));
   if (bundledDemoDbExists()) return bootstrapBundledDemoDb();
   return undefined;
 }
@@ -75,6 +121,12 @@ export const prisma =
   new PrismaClient({
     datasourceUrl: datasourceUrl(),
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-  });
+  }).$extends({
+    query: {
+      $allModels: {
+        $allOperations: ({ args, query }) => withRetry(() => query(args)),
+      },
+    },
+  }) as unknown as PrismaClient;
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

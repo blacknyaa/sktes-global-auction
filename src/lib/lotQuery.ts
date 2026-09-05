@@ -138,19 +138,56 @@ export function filtersToQuery(f: LotFilters): string {
  * In production this is a timer job. Here it runs on page load, which keeps
  * the demo self-correcting no matter how long it has been left alone.
  */
-export async function sweepLotLifecycle(now: Date = new Date()): Promise<void> {
-  await prisma.lot.updateMany({
-    where: { status: "SCHEDULED", startAt: { lte: now } },
-    data: { status: "OPEN" },
-  });
+/**
+ * The sweep runs at most this often per instance.
+ *
+ * It used to run on every render of the dashboard, the lot list, a lot page
+ * and the bid history - a write on every page view. Seven people bidding at
+ * the same moment therefore produced seven concurrent writes to the same
+ * table, and under that contention one request waited more than thirty
+ * seconds and its bid was lost. Peak load is exactly the closing minutes of an
+ * auction, so this is the worst possible moment to be slow.
+ *
+ * Delaying a status change by a few seconds costs nothing, because nothing
+ * relies on the stored status being instantaneous: every screen decides open
+ * or closed from the clock, and openSeal() refuses to unseal before the
+ * deadline whatever the row says.
+ */
+const SWEEP_INTERVAL_MS = 10_000;
+let lastSweptAt = 0;
 
-  // SQLite cannot compare two columns in a WHERE clause, so the extended
-  // deadline is evaluated in application code.
-  const open = await prisma.lot.findMany({
-    where: { status: "OPEN" },
+export async function sweepLotLifecycle(
+  now: Date = new Date(),
+  force = false
+): Promise<void> {
+  if (!force && Date.now() - lastSweptAt < SWEEP_INTERVAL_MS) return;
+  lastSweptAt = Date.now();
+
+  // Only lots whose start time has arrived; checking first means the common
+  // case - nothing to do - costs one indexed read and no write at all.
+  const toOpen = await prisma.lot.findMany({
+    where: { status: "SCHEDULED", startAt: { lte: now } },
+    select: { id: true },
+  });
+  if (toOpen.length > 0) {
+    await prisma.lot.updateMany({
+      where: { id: { in: toOpen.map((l) => l.id) } },
+      data: { status: "OPEN" },
+    });
+  }
+
+  // Narrow to lots that could plausibly have finished, rather than reading
+  // every open lot. The exact rule - an extension wins over the original
+  // deadline - is applied in code, because SQLite cannot compare two columns
+  // in a WHERE clause and the demo must run on either database.
+  const candidates = await prisma.lot.findMany({
+    where: {
+      status: "OPEN",
+      OR: [{ endAt: { lte: now } }, { extendedUntil: { lte: now } }],
+    },
     select: { id: true, endAt: true, extendedUntil: true },
   });
-  const expired = open
+  const expired = candidates
     .filter((l) => {
       const end = l.extendedUntil && l.extendedUntil > l.endAt ? l.extendedUntil : l.endAt;
       return end <= now;
