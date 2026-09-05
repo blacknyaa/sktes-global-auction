@@ -102,8 +102,8 @@ npm run verify:seal
 ## 構成
 
 ```
-prisma/schema.prisma      24テーブルのドメインモデル
-prisma/seed/              40カ国・77社・44出品・209入札の生成
+prisma/schema.prisma      25テーブルのドメインモデル
+prisma/seed/              40カ国・77社・47出品・215入札の生成
 src/lib/seal.ts           封印入札の暗号化エンジン
 src/lib/totp.ts           RFC 6238 の多要素認証（自前実装・監査可能）
 src/lib/manifest.ts       Excel の取り込みと書き出し
@@ -117,6 +117,8 @@ scripts/e2e.mjs           全画面の表示確認とスクリーンショット
 scripts/flow.mjs          仮登録から引き渡しまでの業務フロー通し確認
 scripts/rules.mjs         業務ルールの検証（税区分・上限・自動延長など）
 scripts/audit.mjs         多言語・アクセシビリティ・応答時間・リンク切れ
+scripts/concurrency.mjs   同時入札・同時開封・同時落札・負荷
+scripts/reset-demo.mjs    デモデータを初期状態に戻す
 ```
 
 技術構成は TypeScript / Next.js 15 (App Router) / React 19 / Tailwind CSS v4 / Prisma。
@@ -128,7 +130,7 @@ scripts/audit.mjs         多言語・アクセシビリティ・応答時間・
 ## 確認用コマンド
 
 ```bash
-npm run verify:all    # 下記すべてを順に実行（103項目）
+npm run verify:all    # 下記すべてを順に実行（111項目）
 ```
 
 個別に走らせる場合:
@@ -138,6 +140,7 @@ npm run e2e           # 全画面の表示確認 39項目、screenshots/ に保�
 npm run audit         # 多言語・アクセシビリティ・応答時間・リンク切れ 14項目
 npm run flow          # 仮登録から引き渡しまでの業務フロー 35項目
 npm run rules         # 業務ルール 15項目
+npm run concurrency   # 同時実行と負荷 8項目
 npm run verify:seal   # 封印入札の性質を検証
 npm run build         # 本番ビルド
 npm run db:reset      # デモデータを初期状態に戻す
@@ -149,7 +152,9 @@ npm run db:reset      # デモデータを初期状態に戻す
 付いているかまで見ます。`rules` は Excel 明細の取り込みから出品作成、
 国内バイヤーの適格請求書と海外バイヤーの輸出免税の出し分け、カード決済の
 上限、締切間際の入札による自動延長といった、動くだけでは分からない部分を
-確認します。
+確認します。`concurrency` は複数の応札者が同じ瞬間に入札した場合、
+管理者が同時に開封した場合、2名が同時に落札を確定した場合に、記録が
+失われたり二重になったりしないかを実際に並列実行して確かめます。
 
 公開済みの URL に対しても実行できます。
 

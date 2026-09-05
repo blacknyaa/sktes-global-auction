@@ -214,7 +214,10 @@ try {
     if (capped.length) {
       const s = capped[0];
       await s.page.goto(BASE + target, { waitUntil: "networkidle" });
-      await s.page.locator('input[name="amount"]').fill(String(Math.round(minimum * 1.3)));
+      // Comfortably above any conditional ceiling, and above the lot minimum,
+      // so the refusal under test is unambiguous.
+      const overCap = Math.max(Math.round(minimum * 1.3), 100000);
+      await s.page.locator('input[name="amount"]').fill(String(overCap));
       await s.page
         .locator('form:has(input[name="amount"]) button[type="submit"]')
         .first()
