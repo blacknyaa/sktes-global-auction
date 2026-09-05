@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/prepare-datasource.mjs && prisma generate && node scripts/build-demo-db.mjs && next build",
+    "build": "node scripts/prepare-datasource.mjs && prisma generate && node scripts/provision-db.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "db:push": "node scripts/prepare-datasource.mjs && prisma db push",
