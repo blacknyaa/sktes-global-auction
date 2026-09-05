@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/AuthShell";
+import { FormNotice } from "@/components/form";
 import { getDictionary } from "@/i18n";
 import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "./LoginForm";
@@ -9,9 +10,14 @@ import { LoginForm } from "./LoginForm";
 export const metadata: Metadata = { title: "ログイン" };
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string }>;
+}) {
   if (await getCurrentUser()) redirect("/dashboard");
   const dict = await getDictionary();
+  const { reset } = await searchParams;
 
   return (
     <AuthShell
@@ -33,6 +39,12 @@ export default async function LoginPage() {
         </div>
       }
     >
+      {reset === "1" && (
+        <div className="mb-4">
+          <FormNotice tone="success">{dict.auth.demoResetDone}</FormNotice>
+        </div>
+      )}
+
       <LoginForm
         labels={{
           email: dict.auth.email,

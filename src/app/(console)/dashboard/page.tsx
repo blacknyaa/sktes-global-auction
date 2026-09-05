@@ -143,15 +143,30 @@ export default async function DashboardPage() {
     value: byStatus.find((g) => g.status === s)?._count ?? 0,
   }));
 
-  const monthly = new Map<string, number>();
+  // Weekly rather than monthly: a lot runs for one to two weeks, so months
+  // collapse the whole trend into two or three points and the line says
+  // nothing. Twelve weeks is enough to see a direction.
+  const weekStartOf = (d: Date) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // back to Monday
+    return x;
+  };
+  const weekly = new Map<string, number>();
   for (const a of awardRows) {
-    const k = `${a.selectedAt.getFullYear()}-${String(a.selectedAt.getMonth() + 1).padStart(2, "0")}`;
-    monthly.set(k, (monthly.get(k) ?? 0) + a.amountCents);
+    const w = weekStartOf(a.selectedAt);
+    const k = `${w.getFullYear()}-${String(w.getMonth() + 1).padStart(2, "0")}-${String(
+      w.getDate()
+    ).padStart(2, "0")}`;
+    weekly.set(k, (weekly.get(k) ?? 0) + a.amountCents);
   }
-  const revenueTrend = [...monthly.entries()]
+  const revenueTrend = [...weekly.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-12)
-    .map(([label, cents]) => ({ label: label.slice(2), value: cents / 100 }));
+    .map(([label, cents]) => ({
+      label: label.slice(5).replace("-", "/"),
+      value: cents / 100,
+    }));
 
   return (
     <>
@@ -182,7 +197,7 @@ export default async function DashboardPage() {
         <Stat label={dict.lotStatus.OPEN} value={formatNumber(openLots, locale)} unit="lots" />
         <Stat label={dict.lot.bidCount} value={formatNumber(bidCount, locale)} unit="bids" />
         <Stat
-          label={user.role === "BIDDER" ? dict.contractStatus.AWARDED : "落札率"}
+          label={user.role === "BIDDER" ? dict.contractStatus.AWARDED : dict.admin.winRate}
           value={
             user.role === "BIDDER"
               ? formatNumber(awardCount, locale)
@@ -190,7 +205,7 @@ export default async function DashboardPage() {
           }
         />
         <Stat
-          label="落札金額"
+          label={dict.admin.revenue}
           value={formatMoney(awardSum._sum.amountCents ?? 0, "USD", locale)}
         />
       </div>
@@ -201,7 +216,7 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-bold text-ink">
               {dict.admin.revenue} · {dict.admin.period}
             </h2>
-            <p className="mb-4 text-xs text-muted">USD · {dict.admin.allTime}</p>
+            <p className="mb-4 text-xs text-muted">USD · {dict.admin.weekly}</p>
             <TrendChart
               points={revenueTrend}
               ariaLabel={dict.admin.revenue}
@@ -225,7 +240,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-2">
         {/* closing soon */}
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
@@ -354,10 +369,10 @@ export default async function DashboardPage() {
       </div>
 
       {user.role === "ADMIN" && (
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-2">
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-              <h2 className="text-sm font-bold text-ink">不正監視</h2>
+              <h2 className="text-sm font-bold text-ink">{dict.admin.fraudTitle}</h2>
               <Link href="/admin/fraud" className="text-xs font-semibold text-brand hover:underline">
                 {dict.common.detail}
               </Link>

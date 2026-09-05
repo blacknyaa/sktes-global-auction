@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import clsx from "clsx";
 import { registerAction, type RegisterState } from "./actions";
 import { FormError } from "@/components/form";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export type CountryOption = { code: string; name: string; region: string };
 
@@ -42,12 +42,7 @@ export type WizardLabels = {
 };
 
 function Submit({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn btn-primary" disabled={pending}>
-      {pending ? "..." : label}
-    </button>
-  );
+  return <SubmitButton>{label}</SubmitButton>;
 }
 
 export function RegisterWizard({

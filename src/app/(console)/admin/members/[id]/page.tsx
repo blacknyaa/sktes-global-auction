@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { getDictionary, getLocale } from "@/i18n";
 import { PageHeader } from "@/components/console/ConsoleShell";
 import { Badge, COMPANY_STATUS_TONE, Card } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/format";
 import { humanSize } from "@/lib/storage";
@@ -35,10 +36,19 @@ export default async function MemberDetailPage({
   });
   if (!company) notFound();
 
+  // The company's own trail plus every document review done on it - reviewing
+  // a document is logged against the document, so filtering on Company alone
+  // would hide exactly the decisions an auditor came here to read.
+  const documentIds = company.documents.map((d) => d.id);
   const trail = await prisma.auditLog.findMany({
-    where: { targetType: "Company", targetId: id },
+    where: {
+      OR: [
+        { targetType: "Company", targetId: id },
+        { targetType: "CompanyDocument", targetId: { in: documentIds } },
+      ],
+    },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 30,
   });
 
   const exportDestinations: string[] = JSON.parse(
@@ -166,8 +176,9 @@ export default async function MemberDetailPage({
                               ? "danger"
                               : "neutral"
                         }
+                        dot
                       >
-                        {d.status}
+                        {dict.docStatus[d.status as keyof typeof dict.docStatus] ?? d.status}
                       </Badge>
                       <a
                         href={`/api/documents/${d.id}`}
@@ -175,7 +186,7 @@ export default async function MemberDetailPage({
                         rel="noreferrer"
                         className="btn btn-subtle px-2.5 py-1 text-xs"
                       >
-                        {dict.common.detail}
+                        {dict.member.openDoc}
                       </a>
                     </div>
                   </div>
@@ -188,22 +199,22 @@ export default async function MemberDetailPage({
                         className="input h-8 max-w-56 flex-1 py-1 text-xs"
                         placeholder={dict.member.rejectReason}
                       />
-                      <button
-                        type="submit"
+                      <SubmitButton
                         name="decision"
                         value="APPROVED"
-                        className="btn btn-primary px-2.5 py-1 text-xs"
+                        className="btn-primary px-2.5 py-1 text-xs"
+                        pendingLabel={dict.common.processing}
                       >
                         {dict.member.approveDoc}
-                      </button>
-                      <button
-                        type="submit"
+                      </SubmitButton>
+                      <SubmitButton
                         name="decision"
                         value="REJECTED"
-                        className="btn btn-danger px-2.5 py-1 text-xs"
+                        className="btn-danger px-2.5 py-1 text-xs"
+                        pendingLabel={dict.common.processing}
                       >
                         {dict.member.rejectDoc}
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </li>
@@ -288,67 +299,84 @@ export default async function MemberDetailPage({
               </div>
 
               <div className="grid gap-2">
-                <button
-                  type="submit"
+                <SubmitButton
                   name="status"
                   value="UNDER_REVIEW"
-                  className="btn btn-ghost w-full"
+                  className="btn-ghost w-full"
+                  pendingLabel={dict.common.processing}
                 >
                   {dict.member.startReview}
-                </button>
-                <button
-                  type="submit"
+                </SubmitButton>
+                <SubmitButton
                   name="status"
                   value="PROVISIONAL"
-                  className="btn btn-subtle w-full"
+                  className="btn-subtle w-full"
+                  pendingLabel={dict.common.processing}
                 >
                   {dict.member.approveProvisional}
-                </button>
-                <button
-                  type="submit"
+                </SubmitButton>
+                <SubmitButton
                   name="status"
                   value="APPROVED"
-                  className="btn btn-primary w-full"
+                  className="btn-primary w-full"
+                  pendingLabel={dict.common.processing}
                 >
                   {dict.member.approve}
-                </button>
+                </SubmitButton>
                 <div className="my-1 h-px bg-line" />
-                <button
-                  type="submit"
+                <SubmitButton
                   name="status"
                   value="SUSPENDED"
-                  className="btn btn-danger w-full"
+                  className="btn-danger w-full"
+                  confirm={dict.member.confirmSuspend}
+                  pendingLabel={dict.common.processing}
                 >
                   {dict.member.suspend}
-                </button>
-                <button
-                  type="submit"
+                </SubmitButton>
+                <SubmitButton
                   name="status"
                   value="EXPELLED"
-                  className="btn btn-danger w-full"
+                  className="btn-danger w-full"
+                  confirm={dict.member.confirmExpel}
+                  pendingLabel={dict.common.processing}
                 >
                   {dict.member.expel}
-                </button>
+                </SubmitButton>
               </div>
             </form>
           </Card>
 
           <Card className="p-6">
             <h2 className="text-base font-bold text-ink">
-              {dict.auth.sessionsTitle.replace("端末", "ユーザー")}
+              {dict.member.companyUsers}
             </h2>
             <ul className="mt-3 space-y-2">
               {company.users.map((u) => (
-                <li key={u.id} className="rounded-lg bg-surface-2 px-3 py-2">
+                <li key={u.id} className="rounded-lg bg-surface-2 px-3 py-2.5">
                   <p className="text-sm font-medium text-ink">{u.name}</p>
-                  <p className="text-xs text-muted">{u.email}</p>
-                  <p className="mt-0.5 flex gap-2 text-[11px] text-muted">
-                    <span>{u.status}</span>
-                    <span>MFA {u.mfaEnabled ? "ON" : "OFF"}</span>
-                    <span>{u.locale}</span>
+                  <p className="truncate text-xs text-muted">{u.email}</p>
+                  <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <Badge
+                      tone={
+                        u.status === "ACTIVE"
+                          ? "success"
+                          : u.status === "LOCKED"
+                            ? "warn"
+                            : "neutral"
+                      }
+                    >
+                      {dict.userStatus[u.status as keyof typeof dict.userStatus] ?? u.status}
+                    </Badge>
+                    <Badge tone={u.mfaEnabled ? "success" : "neutral"}>
+                      MFA {u.mfaEnabled ? dict.auth.mfaOn : dict.auth.mfaOff}
+                    </Badge>
+                    <span className="text-[11px] uppercase text-muted">{u.locale}</span>
                   </p>
                 </li>
               ))}
+              {company.users.length === 0 && (
+                <li className="text-sm text-muted">{dict.common.noData}</li>
+              )}
             </ul>
           </Card>
         </div>

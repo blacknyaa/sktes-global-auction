@@ -6,6 +6,7 @@ import { canBid, requireUser } from "@/lib/auth";
 import { getDictionary, getLocale } from "@/i18n";
 import { PageHeader } from "@/components/console/ConsoleShell";
 import { Badge, Card, LOT_STATUS_TONE } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 import { Countdown } from "@/components/Countdown";
 import { ManifestTable } from "./ManifestTable";
 import { BidPanel } from "./BidPanel";
@@ -269,9 +270,12 @@ export default async function LotDetailPage({
                     {isClosed ? (
                       <form action={openSealAction}>
                         <input type="hidden" name="lotId" value={lot.id} />
-                        <button type="submit" className="btn btn-primary">
+                        <SubmitButton
+                          confirm={dict.bid.confirmOpenSeal}
+                          pendingLabel={dict.bid.opening}
+                        >
                           {dict.bid.openSeal}
-                        </button>
+                        </SubmitButton>
                         <p className="mt-2 text-xs text-muted">
                           {dict.bid.openSealHint}
                         </p>
@@ -348,13 +352,15 @@ export default async function LotDetailPage({
                                         : dict.bid.awardReasonRequired
                                     }
                                     required={i > 0}
+                                    aria-label={dict.bid.awardReason}
                                   />
-                                  <button
-                                    type="submit"
-                                    className="btn btn-primary whitespace-nowrap px-2.5 py-1 text-xs"
+                                  <SubmitButton
+                                    className="btn-primary whitespace-nowrap px-2.5 py-1 text-xs"
+                                    confirm={dict.bid.confirmAward}
+                                    pendingLabel={dict.common.processing}
                                   >
                                     {dict.bid.awardSelect}
-                                  </button>
+                                  </SubmitButton>
                                 </form>
                               </td>
                             )}
@@ -472,9 +478,9 @@ export default async function LotDetailPage({
                         className="input h-9 min-w-52 flex-1 py-1.5 text-sm"
                         placeholder={dict.bid.answerPlaceholder}
                       />
-                      <button type="submit" className="btn btn-primary px-3 py-1.5 text-xs">
+                      <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pendingLabel={dict.common.processing}>
                         {dict.bid.answerSubmit}
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : null}
                 </li>
@@ -496,9 +502,9 @@ export default async function LotDetailPage({
                   className="input resize-y"
                   placeholder={dict.bid.questionPlaceholder}
                 />
-                <button type="submit" className="btn btn-primary mt-2">
+                <SubmitButton className="btn-primary mt-2" pendingLabel={dict.common.processing}>
                   {dict.bid.questionSubmit}
-                </button>
+                </SubmitButton>
               </form>
             )}
           </Card>

@@ -23,7 +23,37 @@ function log(name, ok, detail = "") {
 }
 
 async function shot(page, name) {
+  // Sticky headers get painted twice in a full-page capture; drop them first.
+  const style = await page.addStyleTag({
+    content: "*{position:static !important}",
+  });
   await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: true });
+  await style.evaluate((el) => el.remove()).catch(() => {});
+}
+
+/** Waits for every submit button to stop reporting aria-busy. */
+async function settle(page, timeout = 30000) {
+  await page
+    .waitForFunction(
+      () => !document.querySelector('button[aria-busy="true"]'),
+      undefined,
+      { timeout, polling: 100 }
+    )
+    .catch(() => {});
+  await page.waitForTimeout(300);
+}
+
+/** Clicks, waits for the pending state to appear, then for it to clear. */
+async function act(page, locator) {
+  await locator.click();
+  await page
+    .waitForFunction(
+      () => !!document.querySelector('button[aria-busy="true"]'),
+      undefined,
+      { timeout: 3000, polling: 50 }
+    )
+    .catch(() => {});
+  await settle(page);
 }
 
 async function login(page, email, password = "Demo!2026") {
@@ -59,7 +89,11 @@ const context = await browser.newContext({
   locale: "ja-JP",
   timezoneId: "Asia/Tokyo",
 });
+await context.addCookies([{ name: "sktes_locale", value: "ja", url: BASE }]);
 const page = await context.newPage();
+// Confirmation dialogs are part of the product now; accept them like a user would.
+context.on("page", (p) => p.on("dialog", (d) => d.accept()));
+page.on("dialog", (d) => d.accept());
 page.on("pageerror", (e) => console.log("  [page error]", e.message));
 
 try {
@@ -133,12 +167,13 @@ try {
     }
 
     await page.goto(`${BASE}/settings/security`, { waitUntil: "networkidle" });
-    const enable = page.locator('form button:has-text("MFAを有効にする")').first();
-    if (await enable.count()) {
-      await enable.click();
-      await page.waitForSelector('img[alt="MFA QR code"]', { timeout: 20000 }).catch(() => {});
+    if (!(await page.locator('img[alt="MFA QR code"]').count())) {
+      const enable = page.locator('[data-testid=begin-mfa]').first();
+      if (await enable.count()) await act(page, enable);
+      await page
+        .waitForSelector('img[alt="MFA QR code"]', { timeout: 30000 })
+        .catch(() => {});
     }
-    await page.waitForTimeout(500);
     await shot(page, "06-mfa-setup");
     log("MFA QR rendered", (await page.locator('img[alt="MFA QR code"]').count()) > 0);
 

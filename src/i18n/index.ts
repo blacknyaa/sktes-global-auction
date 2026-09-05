@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/constants";
+import { getCurrentUser } from "@/lib/auth";
 import { ja, type Dictionary } from "./ja";
 import { en } from "./en";
 import { zh } from "./zh";
@@ -18,11 +19,26 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (LOCALES as readonly string[]).includes(value);
 }
 
-/** Reads the viewer locale from the cookie. Server components only. */
+/**
+ * Resolves the language to render in, most specific first:
+ *
+ *   1. what this visitor picked with the switcher (cookie),
+ *   2. the language stored on their account,
+ *   3. Japanese.
+ *
+ * Step 2 matters on a platform with buyers in forty countries: a member in
+ * Singapore whose account says English should not be handed a Japanese screen
+ * just because they have never touched the switcher.
+ */
 export async function getLocale(): Promise<Locale> {
   const store = await cookies();
-  const value = store.get(LOCALE_COOKIE)?.value;
-  return isLocale(value) ? value : DEFAULT_LOCALE;
+  const chosen = store.get(LOCALE_COOKIE)?.value;
+  if (isLocale(chosen)) return chosen;
+
+  const user = await getCurrentUser();
+  if (user && isLocale(user.locale)) return user.locale;
+
+  return DEFAULT_LOCALE;
 }
 
 export async function getDictionary(): Promise<Dictionary> {

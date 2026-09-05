@@ -356,11 +356,16 @@ async function main() {
   // --- lots ----------------------------------------------------------------
   console.log("Seeding lots, manifests and sealed bids...");
 
-  type LotPlan = { status: string; count: number };
+  type LotPlan = { status: string; count: number; unopened?: boolean };
   const plan: LotPlan[] = [
     { status: "OPEN", count: 14 },
     { status: "SCHEDULED", count: 4 },
-    { status: "CLOSED", count: 6 },
+    // Bidding has closed but nobody has opened the envelopes yet. This is the
+    // state a seller actually logs in to find, and the only one from which the
+    // opening ceremony can be demonstrated, so the demo must always contain a
+    // few of them.
+    { status: "CLOSED", count: 5, unopened: true },
+    { status: "CLOSED", count: 4 },
     { status: "AWARDED", count: 14 },
     { status: "CANCELLED", count: 2 },
     { status: "FAILED", count: 2 },
@@ -467,8 +472,14 @@ async function main() {
           sealedPrivateKey: seal.sealedPrivateKey,
           sealIv: seal.sealIv,
           sealAuthTag: seal.sealAuthTag,
-          openedAt: ["CLOSED", "AWARDED", "FAILED"].includes(p.status) ? endAt : null,
-          openedById: ["CLOSED", "AWARDED", "FAILED"].includes(p.status) ? admin.id : null,
+          openedAt:
+            ["CLOSED", "AWARDED", "FAILED"].includes(p.status) && !p.unopened
+              ? endAt
+              : null,
+          openedById:
+            ["CLOSED", "AWARDED", "FAILED"].includes(p.status) && !p.unopened
+              ? admin.id
+              : null,
           createdById: sellerUsers[site.code] ?? demoSeller.id,
           createdAt: new Date(startAt.getTime() - days(2)),
         },
@@ -526,7 +537,10 @@ async function main() {
       // --- bids ---
       const bidderCount = p.status === "FAILED" ? int(0, 1) : int(3, 9);
       const chosen = new Set<string>();
-      const revealed = ["CLOSED", "AWARDED", "FAILED"].includes(p.status);
+      // Bids stay sealed on a lot whose envelopes have not been opened, even
+      // though bidding itself has closed.
+      const revealed =
+        ["CLOSED", "AWARDED", "FAILED"].includes(p.status) && !p.unopened;
       const bidRecords: { id: string; buyerId: string; amount: number }[] = [];
 
       for (let b = 0; b < bidderCount; b++) {

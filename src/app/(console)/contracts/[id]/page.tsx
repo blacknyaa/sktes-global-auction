@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary, getLocale } from "@/i18n";
 import { PageHeader } from "@/components/console/ConsoleShell";
 import { Badge, Card, CONTRACT_STATUS_TONE } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 import { CONTRACT_STATUSES, PAYMENT_METHODS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/datetime";
 import { convertCents, countryFlag, formatMoney } from "@/lib/format";
@@ -190,7 +191,7 @@ export default async function ContractDetailPage({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-6 py-4">
                 <h2 className="text-base font-bold text-ink">{dict.contract.invoice}</h2>
                 <Badge tone={invoice.status === "PAID" ? "success" : "warn"} dot>
-                  {invoice.status}
+                  {dict.invoiceStatus[invoice.status as keyof typeof dict.invoiceStatus] ?? invoice.status}
                 </Badge>
               </div>
 
@@ -287,9 +288,7 @@ export default async function ContractDetailPage({
                         <option>DAP</option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-primary">
-                      {dict.contract.requestShipment}
-                    </button>
+                    <SubmitButton pendingLabel={dict.common.processing}>{dict.contract.requestShipment}</SubmitButton>
                   </form>
                 ) : (
                   <p className="text-sm text-muted">{dict.common.noData}</p>
@@ -299,7 +298,9 @@ export default async function ContractDetailPage({
                   <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
                     <div>
                       <dt className="text-xs text-muted">{dict.common.status}</dt>
-                      <dd className="text-ink">{shipment.status}</dd>
+                      <dd className="text-ink">
+                        {dict.shipmentStatus[shipment.status as keyof typeof dict.shipmentStatus] ?? shipment.status}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted">{dict.contract.carrier}</dt>
@@ -332,9 +333,7 @@ export default async function ContractDetailPage({
                         </label>
                         <input id="trackingNo" name="trackingNo" className="input w-44" />
                       </div>
-                      <button type="submit" className="btn btn-primary">
-                        {dict.contract.markShipped}
-                      </button>
+                      <SubmitButton confirm={dict.contract.confirmShippedDialog} pendingLabel={dict.common.processing}>{dict.contract.markShipped}</SubmitButton>
                     </form>
                   )}
 
@@ -342,9 +341,7 @@ export default async function ContractDetailPage({
                     <form action={confirmReceiptAction}>
                       <input type="hidden" name="contractId" value={contract.id} />
                       <input type="hidden" name="shipmentId" value={shipment.id} />
-                      <button type="submit" className="btn btn-primary">
-                        {dict.contract.confirmReceipt}
-                      </button>
+                      <SubmitButton confirm={dict.contract.confirmReceiptDialog} pendingLabel={dict.common.processing}>{dict.contract.confirmReceipt}</SubmitButton>
                     </form>
                   )}
 
@@ -356,7 +353,7 @@ export default async function ContractDetailPage({
                       <ul className="mt-1 space-y-1">
                         {shipment.defects.map((d) => (
                           <li key={d.id} className="text-xs text-danger">
-                            {d.body} ({d.status})
+                            {d.body} （{dict.defectStatus[d.status as keyof typeof dict.defectStatus] ?? d.status}）
                           </li>
                         ))}
                       </ul>
@@ -377,9 +374,7 @@ export default async function ContractDetailPage({
                         required
                         className="input resize-y"
                       />
-                      <button type="submit" className="btn btn-danger">
-                        {dict.contract.reportDefect}
-                      </button>
+                      <SubmitButton className="btn-danger" pendingLabel={dict.common.processing}>{dict.contract.reportDefect}</SubmitButton>
                     </form>
                   )}
                 </>
@@ -424,21 +419,26 @@ export default async function ContractDetailPage({
                     const blocked =
                       (m === "CREDIT_CARD" || m === "PAYPAL") && overLimit;
                     return (
-                      <button
+                      <SubmitButton
                         key={m}
-                        type="submit"
                         name="method"
                         value={m}
                         disabled={blocked}
                         className={
                           blocked
-                            ? "btn btn-subtle w-full cursor-not-allowed opacity-50"
-                            : "btn btn-ghost w-full"
+                            ? "btn-subtle w-full cursor-not-allowed"
+                            : "btn-ghost w-full"
                         }
                         title={blocked ? dict.contract.cardBlocked : undefined}
+                        pendingLabel={dict.common.processing}
                       >
                         {dict.paymentMethod[m]}
-                      </button>
+                        {blocked && (
+                          <span className="text-[11px] font-normal opacity-70">
+                            （{dict.contract.cardLimit}）
+                          </span>
+                        )}
+                      </SubmitButton>
                     );
                   })}
                 </form>
@@ -466,9 +466,7 @@ export default async function ContractDetailPage({
                     className="input"
                     placeholder="REF123456"
                   />
-                  <button type="submit" className="btn btn-primary w-full">
-                    {dict.contract.confirmPayment}
-                  </button>
+                  <SubmitButton className="btn-primary w-full" confirm={dict.contract.confirmPaymentDialog} pendingLabel={dict.common.processing}>{dict.contract.confirmPayment}</SubmitButton>
                 </form>
               )}
 

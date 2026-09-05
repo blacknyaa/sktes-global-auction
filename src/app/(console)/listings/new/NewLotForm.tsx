@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import clsx from "clsx";
 import {
   createLotAction,
@@ -10,6 +9,7 @@ import {
   type ParseState,
 } from "../actions";
 import { FormError, FormNotice } from "@/components/form";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export type NewLotLabels = {
   steps: [string, string, string];
@@ -58,17 +58,10 @@ function Submit({
   value?: string;
   variant?: string;
 }) {
-  const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      name={name}
-      value={value}
-      className={`btn ${variant}`}
-      disabled={pending}
-    >
-      {pending ? "..." : label}
-    </button>
+    <SubmitButton className={variant} name={name} value={value}>
+      {label}
+    </SubmitButton>
   );
 }
 

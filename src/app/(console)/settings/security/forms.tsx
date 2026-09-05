@@ -1,20 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import {
   changePasswordAction,
   enableMfaAction,
   type SecurityState,
 } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 function Submit({ label, variant = "btn-primary" }: { label: string; variant?: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className={`btn ${variant}`} disabled={pending}>
-      {pending ? "..." : label}
-    </button>
-  );
+  return <SubmitButton className={variant}>{label}</SubmitButton>;
 }
 
 export function EnableMfaForm({

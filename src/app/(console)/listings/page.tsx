@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { getDictionary, getLocale } from "@/i18n";
 import { PageHeader } from "@/components/console/ConsoleShell";
 import { Badge, EmptyState, LOT_STATUS_TONE } from "@/components/ui";
+import { PromptSubmitButton, SubmitButton } from "@/components/SubmitButton";
 import { LOT_STATUSES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/datetime";
 import { formatMoney, formatNumber } from "@/lib/format";
@@ -148,20 +149,29 @@ export default async function ListingsPage({
                       {["DRAFT", "SCHEDULED", "CANCELLED"].includes(lot.status) && (
                         <form action={publishLotAction}>
                           <input type="hidden" name="lotId" value={lot.id} />
-                          <button className="btn btn-subtle whitespace-nowrap px-2.5 py-1 text-xs">
+                          <SubmitButton
+                            className="btn-subtle whitespace-nowrap px-2.5 py-1 text-xs"
+                            confirm={dict.listing.confirmPublish}
+                            pendingLabel={dict.common.processing}
+                          >
                             {lot.status === "CANCELLED"
                               ? dict.listing.republish
                               : dict.listing.publish}
-                          </button>
+                          </SubmitButton>
                         </form>
                       )}
                       {!["AWARDED", "CANCELLED"].includes(lot.status) && (
                         <form action={cancelLotAction}>
                           <input type="hidden" name="lotId" value={lot.id} />
-                          <input type="hidden" name="cancelReason" value="" />
-                          <button className="btn btn-danger whitespace-nowrap px-2.5 py-1 text-xs">
+                          <input type="hidden" name="cancelReason" defaultValue="" />
+                          <PromptSubmitButton
+                            className="btn-danger whitespace-nowrap px-2.5 py-1 text-xs"
+                            promptMessage={dict.listing.cancelReason}
+                            fieldName="cancelReason"
+                            pendingLabel={dict.common.processing}
+                          >
                             {dict.common.cancel}
-                          </button>
+                          </PromptSubmitButton>
                         </form>
                       )}
                     </div>

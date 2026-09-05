@@ -88,7 +88,9 @@ export default async function FraudPage() {
                         className="badge bg-surface-3 text-ink-2 hover:bg-line"
                       >
                         {countryFlag(c.countryCode)} {c.name}
-                        <span className="opacity-60">{c.status}</span>
+                        <span className="opacity-60">
+                          {dict.companyStatus[c.status as keyof typeof dict.companyStatus] ?? c.status}
+                        </span>
                       </Link>
                     </li>
                   ))}
@@ -241,7 +243,7 @@ export default async function FraudPage() {
                             : "neutral"
                     }
                   >
-                    {s.status}
+                    {dict.signalStatus[s.status as keyof typeof dict.signalStatus] ?? s.status}
                   </Badge>
                 </li>
               ))}
