@@ -4,17 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/prepare-datasource.mjs && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "db:push": "prisma db push",
-    "db:seed": "node --env-file=.env --import tsx prisma/seed/index.ts",
+    "db:push": "node scripts/prepare-datasource.mjs && prisma db push",
+    "db:seed": "node --env-file-if-exists=.env --import tsx prisma/seed/index.ts",
     "db:reset": "prisma db push --force-reset --skip-generate && npm run db:seed",
     "db:studio": "prisma studio",
     "verify:seal": "node --env-file=.env --import tsx scripts/verify-seal.ts",
     "e2e": "node scripts/e2e.mjs",
     "db:use-postgres": "node scripts/switch-datasource.mjs postgresql",
-    "db:use-sqlite": "node scripts/switch-datasource.mjs sqlite"
+    "db:use-sqlite": "node scripts/switch-datasource.mjs sqlite",
+    "db:deploy": "node scripts/prepare-datasource.mjs && prisma db push --accept-data-loss && npm run db:seed",
+    "flow": "node scripts/flow.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

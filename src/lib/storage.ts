@@ -1,16 +1,18 @@
-import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { prisma } from "./prisma";
 
 /**
- * Local disk storage for the demo. In production this becomes Azure Blob
- * Storage with private containers and short-lived SAS URLs; nothing outside
- * this file knows where the bytes actually live, so that swap is a one-file
- * change. Registry extracts and passports must never sit in a public bucket.
+ * Storage for uploaded files.
+ *
+ * The bytes live in the database rather than on disk. That is not the shape a
+ * production system should keep - registry extracts and passports belong in
+ * Azure Blob Storage with private containers and short-lived SAS URLs - but a
+ * serverless host hands every request a fresh, read-only filesystem, so a file
+ * written during registration would be gone before the reviewer opened it.
+ *
+ * Nothing outside this file knows where the bytes actually live, so moving to
+ * blob storage stays a single-file change.
  */
-
-const ROOT = path.join(process.cwd(), "storage");
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -27,10 +29,6 @@ export const ALLOWED_SHEET_TYPES = new Set([
   "text/csv",
 ]);
 
-async function ensureDir(dir: string) {
-  if (!existsSync(dir)) await mkdir(dir, { recursive: true });
-}
-
 export type StoredFile = {
   storageKey: string;
   fileName: string;
@@ -43,27 +41,38 @@ export async function saveUpload(
   folder: string
 ): Promise<StoredFile> {
   const safeName = file.name.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
-  const key = `${folder}/${randomUUID()}_${safeName}`;
-  const target = path.join(ROOT, key);
-  await ensureDir(path.dirname(target));
-  await writeFile(target, Buffer.from(await file.arrayBuffer()));
-  return {
-    storageKey: key,
-    fileName: safeName,
-    mimeType: file.type || "application/octet-stream",
-    sizeBytes: file.size,
-  };
+  const storageKey = `${folder}/${randomUUID()}_${safeName}`;
+  const mimeType = file.type || "application/octet-stream";
+  const data = Buffer.from(await file.arrayBuffer());
+
+  await prisma.storedBlob.create({
+    data: {
+      storageKey,
+      mimeType,
+      sizeBytes: data.byteLength,
+      data: new Uint8Array(data),
+    },
+  });
+
+  return { storageKey, fileName: safeName, mimeType, sizeBytes: data.byteLength };
 }
 
 export async function readStored(key: string): Promise<Buffer | null> {
-  const target = path.join(ROOT, key);
-  if (!target.startsWith(ROOT)) return null; // path traversal guard
-  try {
-    await stat(target);
-    return await readFile(target);
-  } catch {
-    return null;
-  }
+  const blob = await prisma.storedBlob.findUnique({
+    where: { storageKey: key },
+    select: { data: true },
+  });
+  return blob ? Buffer.from(blob.data) : null;
+}
+
+export async function readStoredWithType(
+  key: string
+): Promise<{ data: Buffer; mimeType: string } | null> {
+  const blob = await prisma.storedBlob.findUnique({
+    where: { storageKey: key },
+    select: { data: true, mimeType: true },
+  });
+  return blob ? { data: Buffer.from(blob.data), mimeType: blob.mimeType } : null;
 }
 
 export function validateUpload(

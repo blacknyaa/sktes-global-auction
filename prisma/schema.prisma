@@ -510,3 +510,22 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+/**
+ * Uploaded file bytes.
+ *
+ * Registry extracts, passports and import licences cannot sit on the local
+ * disk: a serverless host gives every request a fresh, read-only filesystem,
+ * so anything written during registration is gone before the reviewer opens
+ * it. Keeping the bytes in the database makes the demo portable to any host.
+ *
+ * In production this becomes Azure Blob Storage with private containers and
+ * short-lived SAS URLs. Only src/lib/storage.ts knows the difference.
+ */
+model StoredBlob {
+  storageKey String   @id
+  mimeType   String
+  sizeBytes  Int
+  data       Bytes
+  createdAt  DateTime @default(now())
+}

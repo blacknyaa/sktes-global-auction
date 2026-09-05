@@ -4,6 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { readStored } from "@/lib/storage";
 import { writeAudit } from "@/lib/audit";
 
+
+// Serves per-request, authorised content; never cache or prerender it.
+export const dynamic = "force-dynamic";
 /**
  * Member documents are served through the application, never from a public
  * path. Only an administrator, or someone from the company that uploaded it,
