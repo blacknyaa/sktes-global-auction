@@ -148,7 +148,7 @@ export default async function ReportsPage() {
           <TrendChart
             points={trend}
             ariaLabel={`${dict.admin.revenue} by month`}
-            formatValue={(n) => `$${Math.round(n).toLocaleString()}`}
+            formatValue={(n) => `$${Math.round(n).toLocaleString("en-US")}`}
           />
         </Card>
 
@@ -173,7 +173,7 @@ export default async function ReportsPage() {
             <p className="mb-4 text-xs text-muted">USD · {dict.admin.winningAmount}</p>
             <BarList
               data={topBuyers}
-              formatValue={(n) => `$${Math.round(n).toLocaleString()}`}
+              formatValue={(n) => `$${Math.round(n).toLocaleString("en-US")}`}
             />
           </Card>
         )}

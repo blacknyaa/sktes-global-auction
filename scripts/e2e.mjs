@@ -123,10 +123,13 @@ try {
     // language switch must actually change the copy
     await page.goto(BASE, { waitUntil: "networkidle" });
     await page.locator('button:has-text("EN")').first().click();
-    await page.waitForTimeout(1200);
-    log("locale switch", (await page.locator("text=sold by sealed bid").count()) > 0);
+    const switched = await page
+      .waitForSelector("text=sold by sealed bid", { timeout: 20000 })
+      .then(() => true)
+      .catch(() => false);
+    log("locale switch", switched);
     await page.locator('button:has-text("日本語")').first().click();
-    await page.waitForTimeout(1200);
+    await page.waitForSelector("text=封印入札", { timeout: 20000 }).catch(() => {});
 
     // responsive pass
     const mobile = await context.newPage();

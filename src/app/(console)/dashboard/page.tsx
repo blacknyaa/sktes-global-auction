@@ -220,7 +220,7 @@ export default async function DashboardPage() {
             <TrendChart
               points={revenueTrend}
               ariaLabel={dict.admin.revenue}
-              formatValue={(n) => `$${Math.round(n).toLocaleString()}`}
+              formatValue={(n) => `$${Math.round(n).toLocaleString("en-US")}`}
             />
           </Card>
 

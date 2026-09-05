@@ -24,7 +24,7 @@ export type BarDatum = {
 
 export function BarList({
   data,
-  formatValue = (n) => n.toLocaleString(),
+  formatValue = (n) => n.toLocaleString("en-US"),
   max,
   emptyLabel = "—",
   className,
@@ -82,7 +82,7 @@ export type TrendPoint = { label: string; value: number };
  */
 export function TrendChart({
   points,
-  formatValue = (n) => n.toLocaleString(),
+  formatValue = (n) => n.toLocaleString("en-US"),
   height = 160,
   ariaLabel,
 }: {
@@ -191,7 +191,7 @@ export function TrendChart({
 /** A compact horizontal proportion bar with the segments labelled beneath. */
 export function ProportionBar({
   segments,
-  formatValue = (n) => n.toLocaleString(),
+  formatValue = (n) => n.toLocaleString("en-US"),
 }: {
   segments: { label: string; value: number }[];
   formatValue?: (n: number) => string;

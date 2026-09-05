@@ -55,7 +55,7 @@ export default async function DemoAdminPage() {
               <div key={c.label}>
                 <dt className="text-xs text-muted">{c.label}</dt>
                 <dd className="tnum text-xl font-bold text-ink">
-                  {c.value.toLocaleString()}
+                  {c.value.toLocaleString("en-US")}
                 </dd>
               </div>
             ))}

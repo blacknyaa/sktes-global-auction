@@ -148,7 +148,7 @@ export function NewLotForm({
             <div className="space-y-3 border-t border-line pt-4">
               <FormNotice tone="success">
                 {labels.parsedLines}: {rows.length} · {labels.parsedUnits}:{" "}
-                {(parseState.totalUnits ?? 0).toLocaleString()}
+                {(parseState.totalUnits ?? 0).toLocaleString("en-US")}
               </FormNotice>
 
               <div className="table-wrap max-h-72 overflow-y-auto">

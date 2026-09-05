@@ -62,7 +62,7 @@ export function ManifestTable({
           placeholder={labels.filter}
         />
         <p className="tnum text-xs text-muted">
-          {filtered.length} {labels.lines} · {total.toLocaleString()}{" "}
+          {filtered.length} {labels.lines} · {total.toLocaleString("en-US")}{" "}
           {labels.quantity}
         </p>
       </div>
@@ -115,7 +115,7 @@ export function ManifestTable({
                   )}
                 </td>
                 <td className="tnum text-right font-semibold text-ink">
-                  {l.quantity.toLocaleString()}
+                  {l.quantity.toLocaleString("en-US")}
                 </td>
                 <td className="max-w-40 truncate text-xs text-muted">{l.note ?? ""}</td>
               </tr>
