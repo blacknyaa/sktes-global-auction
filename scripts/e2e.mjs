@@ -162,6 +162,25 @@ try {
       await page.goto(BASE + href, { waitUntil: "networkidle" });
       await shot(page, "05-admin-member-detail");
       log("member detail", (await page.locator("text=提出書類").count()) > 0);
+
+      // A seeded document must be openable, not just listed. Files live in the
+      // database now, so this also proves storage survives a serverless host.
+      const docHref = await page
+        .locator('a[href^="/api/documents/"]')
+        .first()
+        .getAttribute("href")
+        .catch(() => null);
+      if (docHref) {
+        const res = await page.request.get(BASE + docHref);
+        const body = await res.body();
+        log(
+          "seeded document opens",
+          res.ok() && body.subarray(0, 4).toString() === "%PDF",
+          `${res.status()} ${body.length}B`
+        );
+      } else {
+        log("seeded document opens", false, "no document link");
+      }
     } else {
       log("member detail", false, "no link found");
     }

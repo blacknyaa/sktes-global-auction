@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { buildManifestWorkbook } from "@/lib/manifest";
 
+
+// Serves per-request, authorised content; never cache or prerender it.
+export const dynamic = "force-dynamic";
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }

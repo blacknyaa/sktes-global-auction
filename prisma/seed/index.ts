@@ -9,6 +9,7 @@ import {
   type ModelSpec,
 } from "./catalog";
 import { createLotSeal, sealBid, commit } from "../../src/lib/seal";
+import { placeholderPdf } from "./placeholderPdf";
 
 const prisma = new PrismaClient();
 
@@ -58,6 +59,7 @@ async function wipe() {
     prisma.passwordResetToken.deleteMany(),
     prisma.session.deleteMany(),
     prisma.companyDocument.deleteMany(),
+    prisma.storedBlob.deleteMany(),
     prisma.user.deleteMany(),
     prisma.company.deleteMany(),
     prisma.category.deleteMany(),
@@ -214,6 +216,48 @@ async function main() {
   });
   sellerUsers["JP"] = demoSeller.id;
 
+  // --- document placeholders ----------------------------------------------
+  // One openable PDF per document kind, shared by every seeded member.
+  const DOC_TITLES: Record<string, string[]> = {
+    REGISTRY: [
+      "CERTIFICATE OF INCORPORATION",
+      "This is a placeholder document generated for the SK TES Global Auction demo.",
+      "No real company registry data is contained in this file.",
+      "SK TES Global Auction - demonstration environment",
+    ],
+    ID_DOCUMENT: [
+      "IDENTIFICATION DOCUMENT",
+      "This is a placeholder document generated for the SK TES Global Auction demo.",
+      "No real personal data is contained in this file.",
+      "SK TES Global Auction - demonstration environment",
+    ],
+    ANTIQUE_LICENSE: [
+      "SECOND-HAND DEALER LICENCE",
+      "This is a placeholder document generated for the SK TES Global Auction demo.",
+      "Required of Japanese domestic buyers under the Antique Dealings Act.",
+      "SK TES Global Auction - demonstration environment",
+    ],
+    IMPORT_LICENSE: [
+      "IMPORT LICENCE",
+      "This is a placeholder document generated for the SK TES Global Auction demo.",
+      "No real licence data is contained in this file.",
+      "SK TES Global Auction - demonstration environment",
+    ],
+  };
+  const docBlobSizes: Record<string, number> = {};
+  for (const [kind, lines] of Object.entries(DOC_TITLES)) {
+    const data = placeholderPdf(lines);
+    docBlobSizes[kind] = data.byteLength;
+    await prisma.storedBlob.create({
+      data: {
+        storageKey: `demo/documents/${kind}.pdf`,
+        mimeType: "application/pdf",
+        sizeBytes: data.byteLength,
+        data: new Uint8Array(data),
+      },
+    });
+  }
+
   // --- buyers --------------------------------------------------------------
   console.log("Seeding buyer companies...");
   const buyers: {
@@ -284,14 +328,18 @@ async function main() {
     if (isJapan) docKinds.push("ANTIQUE_LICENSE");
     if (company.hasImportLicense) docKinds.push("IMPORT_LICENSE");
     for (const kind of docKinds) {
+      // Every seeded document points at a real, openable file so the reviewer
+      // can click through the審査 step. One blob per kind, shared by all
+      // companies, keeps the demo database small.
+      const storageKey = `demo/documents/${kind}.pdf`;
       await prisma.companyDocument.create({
         data: {
           companyId: company.id,
           kind,
           fileName: `${kind.toLowerCase()}_${b.country}_${i + 1}.pdf`,
           mimeType: "application/pdf",
-          sizeBytes: int(180_000, 2_400_000),
-          storageKey: `demo/documents/${company.id}/${kind}.pdf`,
+          sizeBytes: docBlobSizes[kind] ?? 0,
+          storageKey,
           status:
             status === "PENDING"
               ? "PENDING"
