@@ -11,38 +11,83 @@ import { countdown, formatDateTime, zoneLabel } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
+type LandingData = {
+  sellerCountries: number;
+  openLots: { _sum: { quantity: number | null }; _count: number };
+  approvedBuyers: number;
+  buyerRegions: { region: string }[];
+  featured: Awaited<ReturnType<typeof loadFeaturedLot>>;
+  degraded: boolean;
+};
+
+function loadFeaturedLot() {
+  return prisma.lot.findFirst({
+    where: { status: "OPEN" },
+    orderBy: { endAt: "asc" },
+    include: {
+      country: true,
+      sellerCompany: true,
+      bids: { where: { status: "SEALED" }, select: { ciphertext: true } },
+      _count: { select: { bids: true, items: true } },
+    },
+  });
+}
+
+/**
+ * The public landing page must render even when the database is unreachable or
+ * empty. A visitor who arrives at a hard 500 learns nothing; a page that draws
+ * itself with zeroes and an honest banner shows the site is up and says what
+ * is missing. Everything behind the login still fails loudly, as it should.
+ */
+async function loadLandingData(): Promise<LandingData> {
+  try {
+    const [sellerCountries, openLots, approvedBuyers, buyerRegions, featured] =
+      await Promise.all([
+        prisma.country.count({ where: { isSellerSite: true } }),
+        prisma.lot.aggregate({
+          where: { status: "OPEN" },
+          _sum: { quantity: true },
+          _count: true,
+        }),
+        prisma.company.count({
+          where: { type: "BUYER", status: { in: ["APPROVED", "PROVISIONAL"] } },
+        }),
+        prisma.country.findMany({
+          where: { companies: { some: { type: "BUYER" } } },
+          select: { region: true },
+          distinct: ["region"],
+        }),
+        loadFeaturedLot(),
+      ]);
+    return {
+      sellerCountries,
+      openLots,
+      approvedBuyers,
+      buyerRegions,
+      featured,
+      degraded: false,
+    };
+  } catch (e) {
+    console.error("[landing] database unavailable:", (e as Error).message);
+    return {
+      sellerCountries: 0,
+      openLots: { _sum: { quantity: 0 }, _count: 0 },
+      approvedBuyers: 0,
+      buyerRegions: [],
+      featured: null,
+      degraded: true,
+    };
+  }
+}
+
 export default async function HomePage() {
   const locale = await getLocale();
   const dict = await getDictionary();
   const now = new Date();
 
-  const [sellerCountries, openLots, approvedBuyers, buyerRegions, featured] =
-    await Promise.all([
-      prisma.country.count({ where: { isSellerSite: true } }),
-      prisma.lot.aggregate({
-        where: { status: "OPEN" },
-        _sum: { quantity: true },
-        _count: true,
-      }),
-      prisma.company.count({
-        where: { type: "BUYER", status: { in: ["APPROVED", "PROVISIONAL"] } },
-      }),
-      prisma.country.findMany({
-        where: { companies: { some: { type: "BUYER" } } },
-        select: { region: true },
-        distinct: ["region"],
-      }),
-      prisma.lot.findFirst({
-        where: { status: "OPEN" },
-        orderBy: { endAt: "asc" },
-        include: {
-          country: true,
-          sellerCompany: true,
-          bids: { where: { status: "SEALED" }, select: { ciphertext: true } },
-          _count: { select: { bids: true, items: true } },
-        },
-      }),
-    ]);
+  const landing = await loadLandingData();
+  const { sellerCountries, openLots, approvedBuyers, buyerRegions, featured } =
+    landing;
 
   const featuredCountdown = featured
     ? countdown(featured.endAt, now)
@@ -67,6 +112,24 @@ export default async function HomePage() {
       <PublicHeader />
 
       <main id="main">
+        {landing.degraded && (
+          <div className="border-b border-warn/30 bg-warn-bg">
+            <Container wide className="py-3">
+              <p className="text-sm font-semibold text-warn">
+                デモデータを読み込めませんでした
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-warn">
+                サイトは動作していますが、データベースに接続できないか、まだデータが投入されていません。
+                原因は{" "}
+                <a href="/api/health" className="font-semibold underline">
+                  /api/health
+                </a>{" "}
+                で確認できます。
+              </p>
+            </Container>
+          </div>
+        )}
+
         {/* ---- hero ---- */}
         <section className="relative overflow-hidden bg-brand-950 text-white">
           <div
