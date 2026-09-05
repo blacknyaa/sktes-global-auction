@@ -331,8 +331,11 @@ function Field({
   optional?: string;
   hint?: string;
 }) {
+  // Wrapping the control in the <label> associates the two without needing an
+  // id on every field. A screen reader then announces "会社名, required, edit"
+  // instead of just "edit", and clicking the caption focuses the input.
   return (
-    <div>
+    <label className="block">
       <span className="label">
         {label}
         {required && <span className="ml-1 text-danger">*</span>}
@@ -342,7 +345,7 @@ function Field({
       </span>
       {children}
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
-    </div>
+    </label>
   );
 }
 
@@ -357,8 +360,10 @@ function DocField({
   tag: string;
   tone: "required" | "conditional" | "optional";
 }) {
+  // A <label> around the whole card ties the caption to the file input, so the
+  // control is announced as "会社登記簿謄本, 必須" rather than an unnamed button.
   return (
-    <div className="rounded-lg border border-line bg-surface-2 p-3.5">
+    <label className="block rounded-lg border border-line bg-surface-2 p-3.5">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold text-ink">{label}</span>
         <span
@@ -380,6 +385,6 @@ function DocField({
         accept=".pdf,.jpg,.jpeg,.png,.webp"
         className="block w-full text-sm text-ink-2 file:mr-3 file:rounded-md file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-on-brand hover:file:bg-brand-hover"
       />
-    </div>
+    </label>
   );
 }

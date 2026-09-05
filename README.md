@@ -113,7 +113,10 @@ src/lib/notify.ts         通知（チャネル追加はアダプタ1つ）
 src/app/(console)/        ログイン後の画面
 src/app/                  公開ページ・認証・請求書
 scripts/verify-seal.ts    封印入札の性質を検証
-scripts/e2e.mjs           実ブラウザでの通し確認とスクリーンショット
+scripts/e2e.mjs           全画面の表示確認とスクリーンショット
+scripts/flow.mjs          仮登録から引き渡しまでの業務フロー通し確認
+scripts/rules.mjs         業務ルールの検証（税区分・上限・自動延長など）
+scripts/audit.mjs         多言語・アクセシビリティ・応答時間・リンク切れ
 ```
 
 技術構成は TypeScript / Next.js 15 (App Router) / React 19 / Tailwind CSS v4 / Prisma。
@@ -125,10 +128,33 @@ scripts/e2e.mjs           実ブラウザでの通し確認とスクリーンシ
 ## 確認用コマンド
 
 ```bash
+npm run verify:all    # 下記すべてを順に実行（103項目）
+```
+
+個別に走らせる場合:
+
+```bash
+npm run e2e           # 全画面の表示確認 39項目、screenshots/ に保存
+npm run audit         # 多言語・アクセシビリティ・応答時間・リンク切れ 14項目
+npm run flow          # 仮登録から引き渡しまでの業務フロー 35項目
+npm run rules         # 業務ルール 15項目
 npm run verify:seal   # 封印入札の性質を検証
-npm run e2e           # 実ブラウザで全画面を通し、screenshots/ に保存
 npm run build         # 本番ビルド
 npm run db:reset      # デモデータを初期状態に戻す
+```
+
+`audit` は日本語・英語・中国語の3言語で未翻訳の有無を確認し、全画面の
+応答時間が要件の3秒以内に収まっているか、内部リンクが切れていないか、
+スマートフォンとタブレットで横スクロールが出ないか、入力欄にラベルが
+付いているかまで見ます。`rules` は Excel 明細の取り込みから出品作成、
+国内バイヤーの適格請求書と海外バイヤーの輸出免税の出し分け、カード決済の
+上限、締切間際の入札による自動延長といった、動くだけでは分からない部分を
+確認します。
+
+公開済みの URL に対しても実行できます。
+
+```bash
+BASE_URL=https://xxx.vercel.app npm run e2e
 ```
 
 管理者でログインすると `/admin/demo` からも初期化できます。
