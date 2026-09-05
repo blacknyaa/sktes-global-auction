@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  DATABASE_URL_CANDIDATES,
   bundledDemoDbExists,
   demoModeEnabled,
   hasDatabaseUrl,
+  presentDatabaseUrlNames,
+  resolveDatabaseUrl,
   usingBundledDemoDb,
   usingFallbackSecrets,
 } from "@/lib/runtime";
@@ -35,11 +38,16 @@ function redact(input: string): string {
 }
 
 export async function GET() {
+  const dbUrl = resolveDatabaseUrl();
   const env = {
-    DATABASE_URL: Boolean(process.env.DATABASE_URL),
-    databaseKind: process.env.DATABASE_URL?.startsWith("postgres")
+    DATABASE_URL: Boolean(dbUrl),
+    // Which of the accepted variable names are actually set. Names only - a
+    // connection string carries credentials and never leaves this process.
+    connectionStringVariables: presentDatabaseUrlNames(),
+    checkedVariableNames: [...DATABASE_URL_CANDIDATES],
+    databaseKind: dbUrl?.startsWith("postgres")
       ? "postgresql"
-      : process.env.DATABASE_URL?.startsWith("file:")
+      : dbUrl?.startsWith("file:")
         ? "sqlite"
         : "unset",
     SEAL_MASTER_KEY: /^[0-9a-f]{64}$/i.test(process.env.SEAL_MASTER_KEY ?? "")

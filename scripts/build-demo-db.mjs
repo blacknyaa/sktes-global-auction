@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
-import { readEnvVar } from "./read-env.mjs";
+import { readDatabaseUrl } from "./read-env.mjs";
 
 /**
  * Bakes a seeded SQLite database into the build when no database is configured.
@@ -17,7 +17,7 @@ import { readEnvVar } from "./read-env.mjs";
  * shared state.
  */
 
-const configured = readEnvVar("DATABASE_URL");
+const configured = readDatabaseUrl()?.value;
 if (configured) {
   console.log(
     "[demo-db] DATABASE_URL is set; skipping the bundled demo database."

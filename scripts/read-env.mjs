@@ -9,6 +9,28 @@ import path from "node:path";
  * hosting platform there is no .env and only the shell matters, which is the
  * same code path.
  */
+/**
+ * Hosting integrations do not agree on a name for the connection string, so
+ * the build looks under all of them. Kept in step with
+ * DATABASE_URL_CANDIDATES in src/lib/runtime.ts, which the running app uses.
+ */
+export const DATABASE_URL_CANDIDATES = [
+  "DATABASE_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL",
+  "DATABASE_URL_UNPOOLED",
+  "POSTGRES_URL_NON_POOLING",
+  "DATABASE_POSTGRES_URL",
+];
+
+export function readDatabaseUrl() {
+  for (const name of DATABASE_URL_CANDIDATES) {
+    const value = readEnvVar(name);
+    if (value) return { name, value };
+  }
+  return undefined;
+}
+
 export function readEnvVar(name) {
   const fromShell = process.env[name]?.trim();
   if (fromShell) return fromShell;
