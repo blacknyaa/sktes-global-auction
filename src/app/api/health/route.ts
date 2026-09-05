@@ -70,6 +70,24 @@ export async function GET() {
     SESSION_SECRET: Boolean(process.env.SESSION_SECRET),
     SITE_URL: Boolean(process.env.SITE_URL),
     DEMO_MODE: process.env.DEMO_MODE ?? null,
+    // Length only, never content. A variable that exists with length 0 was
+    // created in the dashboard but saved without a value, which looks
+    // identical to "configured" from the outside and explains nothing on its
+    // own. This is the one measurement that tells the two apart.
+    valueLengths: Object.fromEntries(
+      [
+        "DATABASE_URL",
+        "POSTGRES_PRISMA_URL",
+        "POSTGRES_URL",
+        "SEAL_MASTER_KEY",
+        "SESSION_SECRET",
+        "SITE_URL",
+        "DEMO_MODE",
+      ].map((k) => [
+        k,
+        k in process.env ? (process.env[k] ?? "").length : "not defined",
+      ])
+    ),
   };
 
   const build = {
@@ -142,7 +160,15 @@ export async function GET() {
         : "none",
   };
 
-  const diagnosis = !connection.ok
+  // A name that exists with an empty value is the confusing case: the
+  // dashboard shows the variable, so it looks configured, but nothing arrives.
+  const definedButEmpty = Object.entries(env.valueLengths)
+    .filter(([, v]) => v === 0)
+    .map(([k]) => k);
+
+  const diagnosis = definedButEmpty.length
+    ? `環境変数 ${definedButEmpty.join(", ")} は登録されていますが、値が空です。Vercel の Settings → Environment Variables で値を入力し直し、Production にチェックを入れて保存してから Redeploy してください。`
+    : !connection.ok
     ? !env.DATABASE_URL && !mode.bundledFilePresent
       ? "DATABASE_URL が未設定で、同梱のデモ用データベースも見つかりません。環境変数を設定して再デプロイしてください。"
       : "データベースに接続できません。接続文字列（pooled を選んでいるか）と、ホスト側でアクセスが許可されているかを確認してください。"
