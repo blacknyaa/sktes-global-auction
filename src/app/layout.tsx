@@ -48,6 +48,14 @@ export default async function RootLayout({
   return (
     <html lang={locale === "zh" ? "zh-CN" : locale}>
       <body className="min-h-dvh antialiased">
+        {/*
+          Some CDNs rewrite anything that looks like an email address in the
+          HTML on its way to the browser. The markup React then finds no longer
+          matches what the server sent, so it discards the server rendering and
+          starts over on the client. These two comments are the documented way
+          to switch that rewriting off for the page.
+        */}
+        <span hidden dangerouslySetInnerHTML={{ __html: "<!--email_off-->" }} />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-brand"
@@ -55,6 +63,7 @@ export default async function RootLayout({
           {dict.common.skipToContent}
         </a>
         {children}
+        <span hidden dangerouslySetInnerHTML={{ __html: "<!--email_on-->" }} />
       </body>
     </html>
   );
