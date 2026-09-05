@@ -1,8 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Badge, LOT_STATUS_TONE } from "./ui";
 import { Countdown } from "./Countdown";
 import { countryFlag, formatMoney, formatNumber } from "@/lib/format";
 import { countdown, formatDateTime, zoneLabel } from "@/lib/datetime";
+import { categoryArt } from "./visual/art";
+import { CornerMarks, Fuda } from "./visual/Ornaments";
 import type { Locale } from "@/lib/constants";
 
 export type LotCardData = {
@@ -64,68 +67,81 @@ export function LotCard({
       : `${p(c.hours)}:${p(c.minutes)}:${p(c.seconds)}`;
 
   return (
-    <li className="card group flex flex-col overflow-hidden transition-shadow hover:shadow-md">
-      <Link href={`/lots/${lot.id}`} className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-3">
-          <span className="font-mono text-[11px] tracking-tight text-muted">
-            {lot.lotNumber}
-          </span>
+    <li className="card card-hover tilt group flex flex-col overflow-hidden">
+      <Link href={`/lots/${lot.id}`} className="flex flex-1 flex-col">
+        <div className="relative h-64 overflow-hidden sm:h-72">
+          <CornerMarks />
+          <Image
+            src={categoryArt(lot.categoryCode)}
+            alt=""
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+          />
+          <Fuda className="absolute bottom-3 left-3 z-10">
+            {labels.category[lot.categoryCode] ?? lot.categoryCode}
+          </Fuda>
+        </div>
+        <div className="flex items-start justify-between gap-3 px-5 pt-4">
+          <span className="font-mono text-[11px] text-brand-700">{lot.lotNumber}</span>
           <Badge tone={LOT_STATUS_TONE[lot.status] ?? "neutral"} dot>
             {labels.status[lot.status] ?? lot.status}
           </Badge>
         </div>
 
-        <h3 className="mt-2 text-[15px] font-bold leading-snug text-ink group-hover:text-brand">
-          {locale === "ja" ? lot.title : lot.titleEn}
-        </h3>
+        <div className="flex flex-1 flex-col p-5">
+          <h3 className="text-[15px] font-bold leading-snug text-ink transition-colors group-hover:text-brand">
+            {locale === "ja" ? lot.title : lot.titleEn}
+          </h3>
 
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-          <span>
-            {countryFlag(lot.countryCode)}{" "}
-            {locale === "ja" ? lot.countryNameJa : lot.countryNameEn}
-          </span>
-          <span aria-hidden="true">·</span>
-          <span>{labels.category[lot.categoryCode] ?? lot.categoryCode}</span>
-          <span aria-hidden="true">·</span>
-          <span>{labels.condition[lot.condition] ?? lot.condition}</span>
-        </p>
-
-        <div className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-surface-2 p-3 text-center">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {labels.quantity}
-            </p>
-            <p className="tnum mt-0.5 text-sm font-bold text-ink">
-              {formatNumber(lot.quantity, locale)}
-            </p>
-          </div>
-          <div className="border-x border-line">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {labels.manifest}
-            </p>
-            <p className="tnum mt-0.5 text-sm font-bold text-ink">{lot.itemCount}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {labels.bidCount}
-            </p>
-            <p className="tnum mt-0.5 text-sm font-bold text-ink">{lot.bidCount}</p>
-          </div>
-        </div>
-
-        {lot.matchedUnits !== undefined && (
-          <p className="mt-2 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-semibold text-brand-800">
-            {labels.matchedLines}: {formatNumber(lot.matchedUnits, locale)}
-          </p>
-        )}
-
-        <div className="mt-auto pt-4">
-          <p className="text-xs text-muted">
-            {labels.minimumBid}{" "}
-            <span className="tnum font-semibold text-ink-2">
-              {formatMoney(lot.minimumBidCents, lot.currency, locale)}
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <span>
+              {countryFlag(lot.countryCode)}{" "}
+              {locale === "ja" ? lot.countryNameJa : lot.countryNameEn}
             </span>
+            <span aria-hidden="true">·</span>
+            <span>{labels.category[lot.categoryCode] ?? lot.categoryCode}</span>
+            <span aria-hidden="true">·</span>
+            <span>{labels.condition[lot.condition] ?? lot.condition}</span>
           </p>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-surface-2 p-3 text-center">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                {labels.quantity}
+              </p>
+              <p className="tnum mt-0.5 text-sm font-bold text-ink">
+                {formatNumber(lot.quantity, locale)}
+              </p>
+            </div>
+            <div className="border-x border-line">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                {labels.manifest}
+              </p>
+              <p className="tnum mt-0.5 text-sm font-bold text-ink">{lot.itemCount}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                {labels.bidCount}
+              </p>
+              <p className="tnum mt-0.5 text-sm font-bold text-ink">{lot.bidCount}</p>
+            </div>
+          </div>
+
+          {lot.matchedUnits !== undefined && (
+            <p className="mt-2 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-semibold text-brand-800">
+              {labels.matchedLines}: {formatNumber(lot.matchedUnits, locale)}
+            </p>
+          )}
+
+          <div className="mt-auto pt-4">
+            <p className="text-xs text-muted">
+              {labels.minimumBid}{" "}
+              <span className="tnum font-semibold text-ink-2">
+                {formatMoney(lot.minimumBidCents, lot.currency, locale)}
+              </span>
+            </p>
+          </div>
         </div>
       </Link>
 

@@ -75,7 +75,7 @@ export function LoginForm({
       <Submit label={labels.signIn} />
 
       {presets.length > 0 && (
-        <div className="rounded-lg border border-dashed border-line-strong bg-surface-2 p-3">
+        <div className="rounded-xl border border-dashed border-brand-200 bg-gradient-to-br from-surface-2 to-brand-50/60 p-3">
           <p className="mb-2 text-xs font-semibold text-muted">
             Demo · one click to fill
           </p>

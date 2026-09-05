@@ -1,68 +1,81 @@
 import Link from "next/link";
 import { Container } from "./ui";
 import { LogoMark } from "./Logo";
-import { getDictionary } from "@/i18n";
+import { getDictionary, getLocale } from "@/i18n";
+import { SELLER_SITES } from "./visual/art";
+import { countryFlag } from "@/lib/format";
+import { Crane } from "./visual/Ornaments";
 
 export async function SiteFooter() {
   const dict = await getDictionary();
+  const locale = await getLocale();
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-20 border-t border-line bg-surface">
-      <Container wide className="flex flex-col gap-6 py-10 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-sm">
+    <footer className="border-t border-line bg-white">
+      <div className="wave-band" />
+      <Container wide className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
           <div className="flex items-center gap-2.5">
-            <LogoMark size={28} />
-            <span className="text-sm font-bold text-ink">SK TES Global Auction</span>
+            <LogoMark size={32} />
+            <div>
+              <p className="text-[15px] font-extrabold text-ink">SK TES</p>
+              <p className="font-serif text-[11px] font-bold tracking-[0.18em] text-brand-700">
+                グローバル競売
+              </p>
+            </div>
+            <Crane size={40} className="ml-auto hidden sm:block" />
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-muted">
-            {dict.meta.description}
-          </p>
+          <p className="mt-4 text-sm leading-relaxed text-ink-2">{dict.meta.description}</p>
         </div>
-
-        <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-              Platform
-            </p>
-            <ul className="space-y-1.5">
-              <li>
-                <Link href="/lots" className="text-ink-2 hover:text-brand">
-                  {dict.nav.lots}
-                </Link>
+        <div>
+          <p className="font-serif text-xs font-extrabold tracking-[0.2em] text-brand-700">案内</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            <li>
+              <Link href="/lots" className="text-ink-2 hover:text-brand-600">
+                {dict.nav.lots}
+              </Link>
+            </li>
+            <li>
+              <Link href="/guide" className="text-ink-2 hover:text-brand-600">
+                {dict.nav.guide}
+              </Link>
+            </li>
+            <li>
+              <Link href="/terms" className="text-ink-2 hover:text-brand-600">
+                {dict.nav.terms}
+              </Link>
+            </li>
+            <li>
+              <Link href="/register" className="text-ink-2 hover:text-brand-600">
+                {dict.common.register}
+              </Link>
+            </li>
+          </ul>
+          <p className="mt-4 text-xs text-muted">{dict.footer.security}</p>
+        </div>
+        <div>
+          <p className="font-serif text-xs font-extrabold tracking-[0.2em] text-brand-700">
+            {dict.home.statsCountries}
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-1.5">
+            {SELLER_SITES.map((s) => (
+              <li
+                key={s.code}
+                className="fx rounded-full bg-brand-50 px-2.5 py-1 text-[12px] font-medium text-ink"
+              >
+                {countryFlag(s.code)} {locale === "ja" ? s.ja : locale === "zh" ? s.zh : s.en}
               </li>
-              <li>
-                <Link href="/guide" className="text-ink-2 hover:text-brand">
-                  {dict.nav.guide}
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-ink-2 hover:text-brand">
-                  {dict.nav.terms}
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-              Security
-            </p>
-            <p className="text-xs leading-relaxed text-muted">
-              {dict.footer.security}
-            </p>
-          </div>
+            ))}
+          </ul>
         </div>
       </Container>
-
-      <div className="border-t border-line">
-        <Container
-          wide
-          className="flex flex-col gap-1 py-4 text-xs text-muted sm:flex-row sm:items-center sm:justify-between"
-        >
+      <div className="ichimatsu-band border-t border-line">
+        <Container wide className="flex flex-col gap-1 py-3 text-xs text-ink-2 sm:flex-row sm:justify-between">
           <p>
             &copy; {year} {dict.footer.operator}
           </p>
-          <p className="font-semibold text-warn">{dict.footer.demoNotice}</p>
+          <p className="font-bold text-warn">{dict.footer.demoNotice}</p>
         </Container>
       </div>
     </footer>

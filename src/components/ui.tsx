@@ -128,7 +128,11 @@ export function Stat({
   hint?: string;
 }) {
   return (
-    <div className="card px-5 py-4">
+    <div className="card fx relative overflow-hidden px-5 py-4">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-brand-600 to-transparent"
+      />
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">
         {label}
       </p>
@@ -175,7 +179,16 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-center gap-2 px-6 py-14 text-center">
+    <div className="card flex flex-col items-center gap-2 px-6 py-16 text-center">
+      <span
+        aria-hidden="true"
+        className="mb-2 flex size-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.6-3.6" strokeLinecap="round" />
+        </svg>
+      </span>
       <p className="text-sm font-semibold text-ink">{title}</p>
       {body && <p className="max-w-md text-sm text-muted">{body}</p>}
       {action}
