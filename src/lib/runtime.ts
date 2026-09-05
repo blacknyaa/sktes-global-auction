@@ -44,13 +44,34 @@ export const DATABASE_URL_CANDIDATES = [
   "DATABASE_POSTGRES_URL",
 ] as const;
 
+/**
+ * Some integrations hand over the parts rather than a URL - host, user,
+ * password, database - so if no ready-made connection string is present the
+ * parts are assembled into one. Postgres over the public internet always
+ * wants TLS, hence the sslmode.
+ */
+function assembleFromParts(): string | undefined {
+  const host = process.env.PGHOST?.trim() ?? process.env.POSTGRES_HOST?.trim();
+  const user = process.env.PGUSER?.trim() ?? process.env.POSTGRES_USER?.trim();
+  const password =
+    process.env.PGPASSWORD?.trim() ?? process.env.POSTGRES_PASSWORD?.trim();
+  const database =
+    process.env.PGDATABASE?.trim() ?? process.env.POSTGRES_DATABASE?.trim();
+  if (!host || !user || !password || !database) return undefined;
+
+  const port = process.env.PGPORT?.trim() || "5432";
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(
+    password
+  )}@${host}:${port}/${database}?sslmode=require`;
+}
+
 /** The first connection string actually present, or undefined. */
 export function resolveDatabaseUrl(): string | undefined {
   for (const name of DATABASE_URL_CANDIDATES) {
     const value = process.env[name]?.trim();
     if (value) return value;
   }
-  return undefined;
+  return assembleFromParts();
 }
 
 /** Which of the candidate names are set, for diagnostics. Never their values. */
