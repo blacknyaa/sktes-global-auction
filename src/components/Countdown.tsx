@@ -55,7 +55,7 @@ export function Countdown({
       : diff <= 0
         ? "text-muted"
         : diff < 300_000
-          ? "text-danger"
+          ? "text-danger animate-urgent"
           : diff < 3_600_000
             ? "text-warn"
             : "text-ink";

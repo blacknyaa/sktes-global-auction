@@ -82,9 +82,13 @@ export async function ConsoleShell({
   return (
     <div className="flex min-h-dvh bg-bg">
       {/* sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-surface lg:flex">
-        <div className="flex h-16 items-center border-b border-line px-4">
-          <Link href="/dashboard" aria-label="SK TES Global Auction">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-surface lg:flex">
+        <div className="relative overflow-hidden border-b border-line px-4 py-4">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-50 via-transparent to-transparent"
+          />
+          <Link href="/dashboard" className="relative" aria-label="SK TES Global Auction">
             <Logo />
           </Link>
         </div>
@@ -94,7 +98,7 @@ export async function ConsoleShell({
         </div>
 
         <div className="border-t border-line p-3">
-          <div className="rounded-lg bg-surface-2 p-3">
+          <div className="rounded-xl border border-line bg-gradient-to-br from-surface-2 to-brand-50/40 p-3">
             <Badge tone={roleTone}>{dict.role[user.role]}</Badge>
             <p className="mt-2 truncate text-sm font-semibold text-ink">{user.name}</p>
             <p className="truncate text-xs text-muted">
@@ -203,9 +207,9 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-4">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+        <h1 className="font-display text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
           {title}
         </h1>
         {lead && <p className="mt-1 text-sm text-ink-2">{lead}</p>}

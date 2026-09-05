@@ -4,6 +4,8 @@ import { getDictionary, getLocale } from "@/i18n";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Badge, Card, Container } from "@/components/ui";
+import { CornerMarks, Fuda, KanjiNum } from "@/components/visual/Ornaments";
+import { WaTitle } from "@/components/visual/AmbientFX";
 import type { Locale } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -153,34 +155,39 @@ export default async function GuidePage() {
     <>
       <PublicHeader />
       <main id="main">
-        <section className="border-b border-line bg-surface py-12">
-          <Container>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">
-              {dict.footer.demoNotice}
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink">
-              {dict.nav.guide}
-            </h1>
-            <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-ink-2">
-              {content.lead}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Link href="/login" className="btn btn-primary">
-                {dict.home.ctaPrimary}
-              </Link>
-              <Link href="/lots" className="btn btn-ghost">
-                {dict.home.ctaSecondary}
-              </Link>
+        <section className="border-b border-line bg-white">
+          <div className="grid lg:grid-cols-2">
+            <div className="px-5 py-14 sm:px-10 lg:py-20">
+              <WaTitle tate="案内" kicker={dict.footer.demoNotice} title={dict.nav.guide} lead={content.lead} />
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Link href="/login" className="btn btn-primary">
+                  {dict.home.ctaPrimary}
+                </Link>
+                <Link href="/lots" className="btn btn-ghost">
+                  {dict.home.ctaSecondary}
+                </Link>
+              </div>
             </div>
-          </Container>
+            <div className="relative min-h-[16rem] overflow-hidden lg:min-h-full">
+              <CornerMarks />
+              <img
+                src="/images/hero-bright.png"
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <span className="hashira-banner">ご利用ガイド</span>
+            </div>
+          </div>
         </section>
 
         <Container className="py-12">
           <div className="space-y-8">
             {content.sections.map((section) => (
-              <Card key={section.role} className="overflow-hidden">
-                <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface-2 px-6 py-4">
-                  <h2 className="text-lg font-bold text-ink">{section.role}</h2>
+              <Card key={section.role} className="tilt reveal relative overflow-hidden">
+                <CornerMarks />
+                <div className="ichimatsu-band flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
+                  <Fuda>{section.role.split(/[（(]/)[0] ?? section.role}</Fuda>
+                  <h2 className="font-serif text-lg font-bold text-ink">{section.role}</h2>
                   <Badge tone="brand">
                     <span className="font-mono">{section.badge}</span>
                   </Badge>
@@ -193,9 +200,7 @@ export default async function GuidePage() {
                 <ol className="divide-y divide-line">
                   {section.steps.map((step, i) => (
                     <li key={step.title} className="flex gap-4 px-6 py-5">
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">
-                        {i + 1}
-                      </span>
+                      <KanjiNum n={["一", "二", "三", "四", "五", "六"][i] ?? String(i + 1)} />
                       <div className="min-w-0">
                         <h3 className="text-sm font-bold text-ink">{step.title}</h3>
                         <p className="mt-1 text-sm leading-relaxed text-ink-2">

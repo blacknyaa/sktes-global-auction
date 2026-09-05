@@ -22,7 +22,7 @@ export default async function RegisterDonePage() {
           {steps.map((s) => (
             <li
               key={s.key}
-              className="flex items-center gap-3 rounded-lg border border-line bg-surface-2 px-3.5 py-2.5"
+              className="flex items-center gap-3 rounded-xl border border-line bg-gradient-to-r from-surface-2 to-brand-50/40 px-3.5 py-2.5"
             >
               <span
                 className={

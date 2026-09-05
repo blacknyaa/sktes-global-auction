@@ -21,7 +21,7 @@ export function LocaleSwitcher({ current }: { current: Locale }) {
 
   return (
     <div
-      className="inline-flex items-center rounded-lg border border-line bg-surface p-0.5"
+      className="inline-flex items-center border border-line bg-surface p-0.5"
       role="group"
       aria-label="Language"
     >

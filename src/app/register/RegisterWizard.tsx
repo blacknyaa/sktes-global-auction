@@ -71,11 +71,11 @@ export function RegisterWizard({
           <li key={s} className="flex flex-1 items-center gap-2">
             <span
               className={clsx(
-                "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm transition-all",
                 i < step
                   ? "bg-success-bg text-success"
                   : i === step
-                    ? "bg-brand text-on-brand"
+                    ? "bg-gradient-to-br from-brand-500 to-brand-800 text-white"
                     : "bg-surface-3 text-muted"
               )}
             >

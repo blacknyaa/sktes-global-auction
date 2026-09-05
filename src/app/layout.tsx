@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getDictionary, getLocale } from "@/i18n";
+import { AmbientFX } from "@/components/visual/AmbientFX";
 
 export const metadata: Metadata = {
   title: {
@@ -46,7 +47,7 @@ export default async function RootLayout({
   const dict = await getDictionary();
 
   return (
-    <html lang={locale === "zh" ? "zh-CN" : locale}>
+    <html lang={locale === "ja" ? "ja" : locale === "zh" ? "zh-CN" : "en"} data-theme="light">
       <body className="min-h-dvh antialiased">
         {/*
           Some CDNs rewrite anything that looks like an email address in the
@@ -62,6 +63,7 @@ export default async function RootLayout({
         >
           {dict.common.skipToContent}
         </a>
+        <AmbientFX />
         {children}
         <span hidden dangerouslySetInnerHTML={{ __html: "<!--email_on-->" }} />
       </body>

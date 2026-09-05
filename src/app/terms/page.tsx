@@ -3,6 +3,8 @@ import { getDictionary } from "@/i18n";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Container } from "@/components/ui";
+import { CornerMarks } from "@/components/visual/Ornaments";
+import { Hanko } from "@/components/visual/Hanko";
 
 export const metadata: Metadata = {
   title: "利用規約",
@@ -72,18 +74,23 @@ export default async function TermsPage() {
     <>
       <PublicHeader />
       <main id="main">
+        <section className="border-b border-line bg-white">
+          <Container className="relative py-14">
+            <Hanko className="stamp-in absolute right-4 top-8 hidden sm:block" size={88} />
+            <p className="season-mark">規約</p>
+            <h1 className="font-serif mt-3 text-4xl font-bold tracking-wide text-ink">{dict.nav.terms}</h1>
+            <span className="mizuhiki" />
+            <p className="mt-4 max-w-2xl rounded-2xl bg-warn-bg px-4 py-3 text-sm font-semibold text-warn">
+              {dict.home.noticeTitle} — 本文はデモ用のサンプルであり、実際の契約条項ではありません。
+            </p>
+          </Container>
+        </section>
         <Container className="py-12">
-          <h1 className="text-3xl font-bold tracking-tight text-ink">
-            {dict.nav.terms}
-          </h1>
-          <p className="mt-2 rounded-lg bg-warn-bg px-3 py-2 text-sm font-semibold text-warn">
-            {dict.home.noticeTitle} — 本文はデモ用のサンプルであり、実際の契約条項ではありません。
-          </p>
-
-          <div className="mt-8 max-w-3xl space-y-6">
+          <div className="mx-auto max-w-3xl space-y-4">
             {CLAUSES.map((c) => (
-              <section key={c.h}>
-                <h2 className="text-base font-bold text-ink">{c.h}</h2>
+              <section key={c.h} className="card tilt reveal washi-scroll relative p-6">
+                <CornerMarks />
+                <h2 className="font-serif text-base font-bold text-ink">{c.h}</h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{c.p}</p>
               </section>
             ))}

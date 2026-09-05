@@ -105,9 +105,9 @@ export function NavLinks({ items }: { items: NavItem[] }) {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={clsx(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
               active
-                ? "bg-brand text-on-brand"
+                ? "bg-gradient-to-r from-brand-700 to-brand-600 text-white shadow-md"
                 : "text-ink-2 hover:bg-surface-3 hover:text-ink"
             )}
           >

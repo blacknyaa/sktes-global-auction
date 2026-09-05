@@ -6,39 +6,64 @@ export function LogoMark({ size = 32 }: { size?: number }) {
       viewBox="0 0 40 40"
       fill="none"
       aria-hidden="true"
-      className="shrink-0"
+      className="logo-mon shrink-0"
     >
-      <defs>
-        <linearGradient id="sktes-logo" x1="0" y1="0" x2="40" y2="40">
-          <stop offset="0%" stopColor="var(--brand-500)" />
-          <stop offset="100%" stopColor="var(--brand-900)" />
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="11" fill="url(#sktes-logo)" />
-      {/* stacked lots */}
-      <rect x="10" y="24.5" width="20" height="3.2" rx="1.6" fill="#fff" opacity="0.95" />
-      <rect x="12.5" y="19.6" width="15" height="3.2" rx="1.6" fill="#fff" opacity="0.6" />
-      {/* seal / padlock shackle */}
+      <circle cx="20" cy="20" r="19" fill="#163a6b" />
+      <circle cx="20" cy="20" r="16.4" fill="none" stroke="#c9a24a" strokeWidth="1.35" />
+      <circle cx="20" cy="20" r="14.2" fill="none" stroke="#fff8e7" strokeWidth="0.6" opacity="0.45" />
       <path
-        d="M15.5 17.5v-3.2a4.5 4.5 0 0 1 9 0v3.2"
+        d="M8.5 24c3.8-7 7.7-7 11.5 0"
         stroke="#fff"
-        strokeWidth="2.4"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
+      <path
+        d="M20 24c3.8-7 7.7-7 11.5 0"
+        stroke="#fff"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13 26.5c2.3-4.2 4.7-4.2 7 0"
+        stroke="#fff"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        opacity="0.75"
+      />
+      <circle cx="20" cy="14.2" r="3.1" fill="#d42b2b" />
+      <circle cx="20" cy="14.2" r="1.3" fill="#fff8e7" />
     </svg>
   );
 }
 
-export function Logo({ compact = false }: { compact?: boolean }) {
+export function Logo({
+  compact = false,
+  inverted = false,
+}: {
+  compact?: boolean;
+  inverted?: boolean;
+}) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <LogoMark size={compact ? 28 : 34} />
       <span className="leading-tight">
-        <span className="block text-[15px] font-bold tracking-tight text-ink">
+        <span
+          className={
+            inverted
+              ? "block text-[15px] font-extrabold text-white"
+              : "block text-[15px] font-extrabold text-ink"
+          }
+        >
           SK TES
         </span>
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-          Global Auction
+        <span
+          className={
+            inverted
+              ? "block font-serif text-[11px] font-bold tracking-[0.18em] text-white/80"
+              : "block font-serif text-[11px] font-bold tracking-[0.18em] text-brand-700"
+          }
+        >
+          グローバル競売
         </span>
       </span>
     </span>

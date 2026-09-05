@@ -50,6 +50,7 @@ export function LotFilters({
   return (
     <Card as="section" className="mb-6 overflow-hidden">
       <form action={action} className="divide-y divide-line">
+        <div className="h-0.5 bg-gradient-to-r from-brand-500 via-brand-300 to-transparent" />
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2">
             <label className="label" htmlFor="q">

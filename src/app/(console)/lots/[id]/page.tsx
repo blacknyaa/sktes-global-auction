@@ -16,6 +16,8 @@ import { cipherFingerprint, commit, effectiveEndAt } from "@/lib/seal";
 import { sweepLotLifecycle } from "@/lib/lotQuery";
 import { countryFlag, formatMoney, formatNumber } from "@/lib/format";
 import { countdown, formatDateTime, zoneLabel } from "@/lib/datetime";
+import { categoryArt } from "@/components/visual/art";
+import Image from "next/image";
 
 export const metadata: Metadata = { title: "出品詳細" };
 export const dynamic = "force-dynamic";
@@ -100,6 +102,33 @@ export default async function LotDetailPage({
 
   return (
     <>
+      <div className="relative mb-5 h-64 overflow-hidden sm:h-80">
+        <Image
+          src={categoryArt(lot.categoryCode)}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 p-5 text-white">
+          <div>
+            <p className="font-mono text-xs text-white/70">{lot.lotNumber}</p>
+            <p className="mt-1 text-sm font-semibold">
+              {countryFlag(lot.countryCode)}{" "}
+              {locale === "ja" ? lot.country.nameJa : lot.country.nameEn}
+              {" · "}
+              {dict.category[lot.categoryCode as keyof typeof dict.category]}
+            </p>
+          </div>
+          <Countdown
+            endAt={closeAt.toISOString()}
+            initial={initial}
+            className="text-lg text-white"
+            urgency={false}
+          />
+        </div>
+      </div>
       <PageHeader
         title={locale === "ja" ? lot.title : lot.titleEn}
         lead={lot.lotNumber}

@@ -8,7 +8,7 @@ export function ThemeToggle() {
   const [mode, setMode] = useState<Mode>("system");
 
   useEffect(() => {
-    const stored = (localStorage.getItem("sktes_theme") as Mode | null) ?? "system";
+    const stored = (localStorage.getItem("sktes_theme") as Mode | null) ?? "light";
     setMode(stored);
     apply(stored);
   }, []);
@@ -36,7 +36,7 @@ export function ThemeToggle() {
       onClick={cycle}
       title={`Theme: ${mode}`}
       aria-label={`Theme: ${mode}`}
-      className="inline-flex size-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-surface-3 hover:text-ink"
+      className="inline-flex size-8 items-center justify-center rounded-xl border border-line text-muted transition-colors hover:bg-surface-3 hover:text-ink"
     >
       {mode === "dark" ? (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
