@@ -207,7 +207,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-4">
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-surface px-5 py-4">
       <div>
         <h1 className="font-display text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
           {title}

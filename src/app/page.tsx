@@ -268,11 +268,11 @@ export default async function HomePage() {
           </div>
         )}
 
-        <section className="bg-white">
+        <section className="bg-surface">
           <div className="wave-band" />
           <div className="border-y border-line bg-brand-50">
             <Container wide className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
-              <p className="font-serif text-sm font-bold tracking-wide text-[var(--indigo)]">
+              <p className="font-serif text-sm font-bold tracking-wide text-[var(--indigo-ink)]">
                 {extra.purpose}
               </p>
               <ul className="flex flex-wrap gap-1.5">
@@ -289,7 +289,7 @@ export default async function HomePage() {
             <div className="relative flex flex-col justify-center px-5 py-8 sm:px-10 lg:px-12 xl:px-16">
               <Sensu className="absolute right-6 top-6 hidden opacity-60 lg:block" />
               <div className="flex items-start gap-4">
-                <span className="tategaki hidden text-sm text-[var(--vermilion)] sm:block">
+                <span className="tategaki hidden text-sm text-[var(--vermilion-ink)] sm:block">
                   封印入札
                 </span>
                 <div className="min-w-0">
@@ -364,7 +364,7 @@ export default async function HomePage() {
                 />
                 <span className="hashira-banner">{extra.hashira}</span>
                 <Hanko className="stamp-in absolute bottom-4 right-4 z-10" size={92} />
-                <p className="absolute bottom-4 left-20 z-10 rounded-full bg-white/94 px-3 py-1 text-xs font-bold text-ink shadow-sm sm:left-24">
+                <p className="absolute bottom-4 left-20 z-10 rounded-full bg-surface/94 px-3 py-1 text-xs font-bold text-ink shadow-sm sm:left-24">
                   {extra.listedNow}
                 </p>
               </div>
@@ -393,7 +393,7 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
-        <div className="bg-white text-brand-50">
+        <div className="bg-surface text-brand-50">
           <KumoDivider />
         </div>
 
@@ -420,7 +420,7 @@ export default async function HomePage() {
                   <Fuda className="absolute bottom-4 left-4 z-10">{extra.nowOpen}</Fuda>
                 </div>
                 <div className="flex flex-col justify-center p-6 sm:p-10">
-                  <p className="font-mono text-sm text-brand-700">{featured.lotNumber}</p>
+                  <p className="font-mono text-sm text-brand">{featured.lotNumber}</p>
                   <h3 className="mt-2 text-2xl font-extrabold leading-snug text-ink">
                     {locale === "ja" ? featured.title : featured.titleEn}
                   </h3>
@@ -446,7 +446,7 @@ export default async function HomePage() {
                   <ul className="mt-5 space-y-2">
                     {featured.bids.slice(0, 3).map((b, i) => (
                       <li key={i} className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2 font-mono text-xs">
-                        <span>{cipherFingerprint(b.ciphertext)}</span>
+                        <span data-sealed-cipher>{cipherFingerprint(b.ciphertext)}</span>
                         <span className="animate-seal font-sans font-bold text-seal">封印</span>
                       </li>
                     ))}
@@ -458,17 +458,17 @@ export default async function HomePage() {
           </section>
         )}
 
-        <div className="bg-brand-50 text-white">
+        <div className="bg-brand-50 text-surface">
           <KumoDivider />
         </div>
 
-        <section className="bg-white py-14 sm:py-16">
+        <section className="bg-surface py-14 sm:py-16">
           <Container wide>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {extra.trust.map((t, i) => (
                 <li key={t.title} className="card fx tilt reveal kumiko p-5">
                   <Hanko label={["封印", "認証", "監査", "税務"][i] ?? "印"} size={56} />
-                  <p className="font-serif mt-3 text-xl text-[var(--vermilion)]">{t.title}</p>
+                  <p className="font-serif mt-3 text-xl text-[var(--vermilion-ink)]">{t.title}</p>
                   <p className="mt-2 text-sm leading-relaxed text-ink-2">{t.body}</p>
                 </li>
               ))}
@@ -496,7 +496,7 @@ export default async function HomePage() {
                     </div>
                     <div className="flex items-center justify-between px-5 py-4">
                       <p className="font-serif text-xl font-bold text-ink">{dict.category[c.code]}</p>
-                      <span className="text-sm font-bold text-brand-600">{dict.common.open}</span>
+                      <span className="text-sm font-bold text-brand">{dict.common.open}</span>
                     </div>
                   </Link>
                 </li>
@@ -505,7 +505,7 @@ export default async function HomePage() {
           </Container>
         </section>
 
-        <section className="bg-white py-16 sm:py-20">
+        <section className="bg-surface py-16 sm:py-20">
           <Container wide>
             <WaTitle tate="流れ" kicker="手順" title={extra.processTitle} lead={extra.processLead} />
             <ol className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -534,7 +534,7 @@ export default async function HomePage() {
           </Container>
         </section>
 
-        <section className="bg-white py-16 sm:py-20">
+        <section className="bg-surface py-16 sm:py-20">
           <Container wide>
             <div className="tilt relative overflow-hidden rounded-3xl border border-line bg-brand-50 lg:grid lg:grid-cols-2">
               <div className="relative min-h-[20rem] lg:min-h-[28rem]">
@@ -553,7 +553,7 @@ export default async function HomePage() {
                   {SELLER_SITES.map((s) => (
                     <li
                       key={s.code}
-                      className="fx rounded-full bg-white px-3 py-1.5 text-sm font-medium text-ink shadow-sm"
+                      className="fx rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow-sm"
                     >
                       {countryFlag(s.code)}{" "}
                       {locale === "ja" ? s.ja : locale === "zh" ? s.zh : s.en}

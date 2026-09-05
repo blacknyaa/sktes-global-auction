@@ -1,6 +1,7 @@
 export const ja = {
   meta: {
     siteName: "SK TES Global Auction",
+    brandSub: "グローバル競売",
     tagline: "世界21拠点のIT資産を、公正な封印入札で。",
     description:
       "SK TESグループが世界21カ国の拠点から出品するパソコン・サーバー・モバイル端末・パーツを、審査済みのグローバルバイヤーが入札・購入できる法人向け競売プラットフォームです。",

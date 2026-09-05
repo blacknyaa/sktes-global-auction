@@ -40,7 +40,7 @@ export async function AuthShell({
           {locale === "zh" ? "封印投标" : locale === "en" ? "Sealed Bid" : "封印入札"}
         </span>
         <Hanko className="stamp-in absolute right-8 top-8 z-10" size={96} />
-        <div className="absolute inset-x-0 bottom-0 bg-white/94 p-8 backdrop-blur-sm">
+        <div className="absolute inset-x-0 bottom-0 bg-surface/94 p-8 backdrop-blur-sm">
           <Logo />
           <p className="font-serif mt-3 text-lg font-bold text-ink">{dict.meta.tagline}</p>
           <ul className="mt-4 space-y-2 text-sm text-ink-2">
@@ -51,10 +51,10 @@ export async function AuthShell({
         </div>
       </aside>
 
-      <div className="flex min-h-dvh flex-col bg-white">
+      <div className="flex min-h-dvh flex-col bg-surface">
         <header className="border-b border-line">
           <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-            <Link href="/" className="lg:hidden" aria-label="SK TES グローバル競売">
+            <Link href="/" className="lg:hidden" aria-label="SK TES Global Auction">
               <Logo />
             </Link>
             <span className="font-serif hidden text-sm font-bold tracking-wider text-ink-2 lg:inline">
