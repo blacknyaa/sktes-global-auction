@@ -6,7 +6,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import type { Role } from "./constants";
-import { sessionSecret } from "./runtime";
+import { sessionSecret, usingBundledDemoDb } from "./runtime";
 
 export const SESSION_COOKIE = "sktes_session";
 export const MFA_COOKIE = "sktes_mfa_pending";
@@ -39,6 +39,46 @@ export async function userAgent(): Promise<string> {
 
 // --- session ---------------------------------------------------------------
 
+/**
+ * The cookie carries a random token, and alongside it a signed statement of
+ * who the token belongs to.
+ *
+ * Normally the token alone is enough: it is hashed and looked up in the
+ * Session table, which is what makes "sign out every other device" work. But
+ * on a serverless host running without a configured database, consecutive
+ * requests land on different instances - twenty of them in one browsing
+ * session, measured - each with its own copy of the bundled demo data. The
+ * session row written during sign-in simply is not there on the next request.
+ *
+ * So the cookie also carries a signed user id. It is only ever trusted when
+ * the row is missing *and* the app is running on the bundled demo database,
+ * where every instance holds the identical seeded users. With a real database
+ * configured, the row is authoritative and revocation behaves exactly as it
+ * should.
+ */
+async function signSessionCookie(token: string, userId: string): Promise<string> {
+  const claim = await new SignJWT({ uid: userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${SESSION_DAYS}d`)
+    .sign(secretKey);
+  return `${token}.${claim}`;
+}
+
+async function readSessionCookie(
+  value: string
+): Promise<{ token: string; userId: string | null }> {
+  const dot = value.indexOf(".");
+  if (dot === -1) return { token: value, userId: null };
+  const token = value.slice(0, dot);
+  try {
+    const { payload } = await jwtVerify(value.slice(dot + 1), secretKey);
+    return { token, userId: (payload.uid as string) ?? null };
+  } catch {
+    return { token, userId: null };
+  }
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
@@ -54,7 +94,7 @@ export async function createSession(userId: string): Promise<void> {
   });
 
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
+  store.set(SESSION_COOKIE, await signSessionCookie(token, userId), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -63,14 +103,25 @@ export async function createSession(userId: string): Promise<void> {
   });
 }
 
+/** The random half of the session cookie, for callers that need to keep the
+ * current device signed in while revoking the others. */
+export async function currentSessionToken(): Promise<string | null> {
+  const raw = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!raw) return null;
+  return (await readSessionCookie(raw)).token;
+}
+
 export async function destroySession(): Promise<void> {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (token) {
+  const raw = store.get(SESSION_COOKIE)?.value;
+  if (raw) {
+    const { token } = await readSessionCookie(raw);
     await prisma.session
       .deleteMany({ where: { tokenHash: sha256(token) } })
       .catch(() => undefined);
   }
+  // Clearing the cookie is what actually ends the session: without it the
+  // signed identity inside would still be accepted on the demo database.
   store.delete(SESSION_COOKIE);
 }
 
@@ -101,16 +152,27 @@ export type SessionUser = {
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  const raw = store.get(SESSION_COOKIE)?.value;
+  if (!raw) return null;
+
+  const { token, userId } = await readSessionCookie(raw);
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: sha256(token) },
     include: { user: { include: { company: true } } },
   });
 
-  if (!session || session.expiresAt < new Date()) return null;
-  const u = session.user;
+  // See signSessionCookie: the signed identity stands in for the session row
+  // only on the bundled demo database, where the row cannot be shared between
+  // instances but every instance holds the same users.
+  let u = session && session.expiresAt >= new Date() ? session.user : null;
+  if (!u && userId && usingBundledDemoDb()) {
+    u = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { company: true },
+    });
+  }
+  if (!u) return null;
   if (u.status === "DISABLED") return null;
 
   return {
