@@ -25,8 +25,41 @@ export const BUNDLED_DEMO_DB = path.join(process.cwd(), "prisma", "demo.db");
  */
 export const RUNTIME_DEMO_DB = path.join(os.tmpdir(), "sktes-demo.db");
 
+/**
+ * Where a connection string might be hiding.
+ *
+ * Hosting integrations do not agree on a name. Neon's own Vercel integration
+ * writes DATABASE_URL; Vercel Postgres writes POSTGRES_PRISMA_URL and friends;
+ * some templates write POSTGRES_URL. Someone who has genuinely connected a
+ * database should not then have to discover that we only read one of those
+ * names, so all of them are accepted, pooled variants first because a
+ * serverless host opens and drops connections constantly.
+ */
+export const DATABASE_URL_CANDIDATES = [
+  "DATABASE_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL",
+  "DATABASE_URL_UNPOOLED",
+  "POSTGRES_URL_NON_POOLING",
+  "DATABASE_POSTGRES_URL",
+] as const;
+
+/** The first connection string actually present, or undefined. */
+export function resolveDatabaseUrl(): string | undefined {
+  for (const name of DATABASE_URL_CANDIDATES) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
+/** Which of the candidate names are set, for diagnostics. Never their values. */
+export function presentDatabaseUrlNames(): string[] {
+  return DATABASE_URL_CANDIDATES.filter((n) => Boolean(process.env[n]?.trim()));
+}
+
 export function hasDatabaseUrl(): boolean {
-  return Boolean(process.env.DATABASE_URL?.trim());
+  return Boolean(resolveDatabaseUrl());
 }
 
 export function bundledDemoDbExists(): boolean {

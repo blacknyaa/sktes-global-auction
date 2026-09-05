@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readEnvVar } from "./read-env.mjs";
+import { readDatabaseUrl } from "./read-env.mjs";
 
 /**
  * Points the Prisma datasource at whatever DATABASE_URL actually is.
@@ -13,7 +13,9 @@ import { readEnvVar } from "./read-env.mjs";
  * is the only line that differs.
  */
 
-const url = readEnvVar("DATABASE_URL") ?? "";
+const found = readDatabaseUrl();
+const url = found?.value ?? "";
+if (found) console.log(`[datasource] using ${found.name}`);
 const target = url.startsWith("postgres") ? "postgresql" : "sqlite";
 
 const file = path.join(process.cwd(), "prisma", "schema.prisma");

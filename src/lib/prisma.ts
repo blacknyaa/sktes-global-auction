@@ -5,6 +5,7 @@ import {
   RUNTIME_DEMO_DB,
   bundledDemoDbExists,
   hasDatabaseUrl,
+  resolveDatabaseUrl,
   usingFallbackSecrets,
 } from "./runtime";
 
@@ -54,7 +55,7 @@ function bootstrapBundledDemoDb(): string {
 }
 
 function datasourceUrl(): string | undefined {
-  const configured = process.env.DATABASE_URL?.trim();
+  const configured = resolveDatabaseUrl();
   if (configured) return clampSqlitePool(configured);
   if (bundledDemoDbExists()) return bootstrapBundledDemoDb();
   return undefined;
