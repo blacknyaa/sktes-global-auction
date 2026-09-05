@@ -162,6 +162,13 @@ npx cloudflared tunnel --url http://localhost:3000
 `https://xxxx.trycloudflare.com` が発行されるので、その URL を伝えます。
 PC を閉じると止まります。
 
+> トンネル経由のときだけ、ブラウザの開発者ツールに React の警告
+> （Minified React error #418）が出ることがあります。Cloudflare がページ内の
+> メールアドレスを自動的に難読化して HTML を書き換えるため、サーバーが返した
+> 内容とブラウザ側が食い違うのが原因で、アプリの不具合ではありません。
+> 画面の動作にも影響しません。Vercel など通常のホスティングでは出ません
+> （`npm run audit` を Vercel に対して実行して確認済み）。
+
 ---
 
 ## 本番構成にするとき

@@ -173,7 +173,7 @@ export default async function InvoicePage({
                   </p>
                 </td>
                 <td className="border border-[#dde5ef] px-3 py-3 text-right tabular-nums">
-                  {contract.award.lot.quantity.toLocaleString()}
+                  {contract.award.lot.quantity.toLocaleString("en-US")}
                 </td>
                 <td className="border border-[#dde5ef] px-3 py-3 text-right font-semibold tabular-nums">
                   {formatMoney(invoice.subtotalCents, invoice.currency, locale)}

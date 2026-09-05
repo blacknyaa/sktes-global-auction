@@ -107,7 +107,7 @@ export function BidPanel({
           <p className="mt-1 text-xs text-muted">
             {labels.minimumBid}:{" "}
             <span className="tnum">
-              {(minimumBid / 100).toLocaleString()} {currency}
+              {(minimumBid / 100).toLocaleString("en-US")} {currency}
             </span>
           </p>
         </div>
