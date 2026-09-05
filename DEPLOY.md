@@ -137,6 +137,8 @@ BASE_URL=https://xxx.vercel.app node scripts/flow.mjs --no-seed
 
 | 症状 | 原因 | 対処 |
 |---|---|---|
+| 環境変数を登録したのに反映されない | **変数名だけ作られて値が空** | `/api/health` の `valueLengths` を見る。長さが `0` なら値が空。値を入れ直し、Production にチェックを入れて保存し Redeploy |
+| 同上（値は入っている） | Production 以外の環境にだけ登録された | 同じ変数を Production にも登録 |
 | `Application error: a server-side exception` | 同梱データベースが壊れているか、DATABASE_URL の設定が誤っている | `/api/health` の `diagnosis` を確認 |
 | 画面は出るがログインできない | デモデータが入っていない | 手順4を実行 |
 | 封印解除でエラー | `SEAL_MASTER_KEY` が投入時と実行時で違う | 同じ鍵に揃えて手順4をやり直す |
