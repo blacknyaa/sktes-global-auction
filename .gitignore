@@ -58,3 +58,6 @@ storage/
 # built at deploy time, never committed
 prisma/demo.db
 prisma/demo.db-journal
+
+# written at run time by scripts/serve-public.mjs
+PUBLIC_URL.txt
