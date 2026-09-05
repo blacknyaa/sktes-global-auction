@@ -79,30 +79,19 @@ Vercel のプロジェクト設定 → Settings → Environment Variables に、
 データベース種別が自動で PostgreSQL に切り替わります
 （`scripts/prepare-datasource.mjs`）。手動でスキーマを書き換える必要はありません。
 
-## 手順4：データベースに表を作り、デモデータを入れる
+## 手順4：（自動）表の作成とデモデータの投入
 
-**手元のPCから**リモートのデータベースに対して実行します。
-Vercel のビルド中には実行されません（ビルドのたびにデータが消えないようにするため）。
+**手作業は不要です。** `DATABASE_URL` が設定されていれば、デプロイのビルド中に
+表が作られ、データベースが空のときだけデモデータが投入されます。
+既にデータが入っている場合は何もしません（再デプロイでデータが消えることは
+ありません）。
 
-PowerShell の場合:
+手元から明示的に実行したい場合のみ、次のコマンドが使えます。
 
 ```powershell
-$env:DATABASE_URL = "postgresql://...（手順1の接続文字列）"
-$env:SEAL_MASTER_KEY = "...（手順2の鍵。Vercel に登録したものと同一）"
+$env:DATABASE_URL = "postgresql://...（接続文字列）"
 npm run db:deploy
 ```
-
-bash の場合:
-
-```bash
-DATABASE_URL="postgresql://..." SEAL_MASTER_KEY="..." npm run db:deploy
-```
-
-`db:deploy` は「種別の切り替え → 表の作成 → デモデータ投入」をまとめて行います。
-最後に `Seed complete` と件数の表が出れば成功です。
-
-> **`SEAL_MASTER_KEY` は Vercel に登録したものと必ず同じ値にしてください。**
-> 違う値で投入すると、封印入札を開封する画面でエラーになります。
 
 ## 手順5：デプロイ
 
@@ -140,8 +129,8 @@ BASE_URL=https://xxx.vercel.app node scripts/flow.mjs --no-seed
 | 環境変数を登録したのに反映されない | **変数名だけ作られて値が空** | `/api/health` の `valueLengths` を見る。長さが `0` なら値が空。値を入れ直し、Production にチェックを入れて保存し Redeploy |
 | 同上（値は入っている） | Production 以外の環境にだけ登録された | 同じ変数を Production にも登録 |
 | `Application error: a server-side exception` | 同梱データベースが壊れているか、DATABASE_URL の設定が誤っている | `/api/health` の `diagnosis` を確認 |
-| 画面は出るがログインできない | デモデータが入っていない | 手順4を実行 |
-| 封印解除でエラー | `SEAL_MASTER_KEY` が投入時と実行時で違う | 同じ鍵に揃えて手順4をやり直す |
+| 画面は出るがログインできない | デモデータが入っていない | Redeploy すればビルド中に自動投入されます |
+| 封印解除でエラー | `SEAL_MASTER_KEY` を後から変更した | 変更前の鍵に戻すか、データベースを空にして Redeploy |
 | ログインしてもすぐログアウトされる | `SESSION_SECRET` 未設定 | 手順3で登録し、再デプロイ |
 | ビルドは通るが起動時に落ちる | 環境変数の反映漏れ | Redeploy（環境変数の変更は再デプロイで反映） |
 
