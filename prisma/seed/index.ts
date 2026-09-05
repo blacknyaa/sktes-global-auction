@@ -862,7 +862,7 @@ async function main() {
   // --- notifications -------------------------------------------------------
   console.log("Seeding notifications...");
   const notifTemplates = [
-    { key: "member.registered", subject: "【SK TES Auction】会員登録を受け付けました" },
+    { key: "member.applied", subject: "【SK TES Auction】会員登録を受け付けました" },
     { key: "bid.received", subject: "【SK TES Auction】入札を受け付けました" },
     { key: "award.won", subject: "【SK TES Auction】落札のお知らせ" },
     { key: "award.lost", subject: "【SK TES Auction】選定結果のお知らせ" },

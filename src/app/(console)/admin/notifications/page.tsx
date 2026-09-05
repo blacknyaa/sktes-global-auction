@@ -68,7 +68,9 @@ export default async function NotificationsPage({
                     : "badge bg-surface-3 text-ink-2 hover:bg-line"
                 }
               >
-                {t.templateKey}
+                {dict.notifyTemplate[
+                  t.templateKey as keyof typeof dict.notifyTemplate
+                ] ?? t.templateKey}
                 <span className="tnum opacity-70">{t._count}</span>
               </a>
             ))}
@@ -125,8 +127,13 @@ export default async function NotificationsPage({
                   <td>
                     <Badge tone="neutral">{n.channel}</Badge>
                   </td>
-                  <td className="whitespace-nowrap font-mono text-[11px] text-ink-2">
-                    {n.templateKey}
+                  <td className="whitespace-nowrap text-xs text-ink-2">
+                    {dict.notifyTemplate[
+                      n.templateKey as keyof typeof dict.notifyTemplate
+                    ] ?? n.templateKey}
+                    <p data-technical="true" className="font-mono text-[10px] text-muted">
+                      {n.templateKey}
+                    </p>
                   </td>
                   <td className="text-xs text-ink-2">
                     {n.toAddress}
