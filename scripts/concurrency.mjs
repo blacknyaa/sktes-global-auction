@@ -115,11 +115,21 @@ try {
     // is superseded and the visible count stays put. Counting the two cases
     // separately is the difference between measuring a race and inventing one.
     const bidders = [];
+    const capped = [];
     let fresh = 0;
     let amending = 0;
     for (const s of sessions) {
+      await s.page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+      // A conditionally approved member carries a bid ceiling far below the
+      // value of these lots, so it is held out of the simultaneous group and
+      // checked separately - the ceiling is a rule, not a failure.
+      const hasCap = /入札上限額/.test(await s.page.locator("body").innerText());
       await s.page.goto(BASE + target, { waitUntil: "networkidle" });
       if (!(await s.page.locator('input[name="amount"]').count())) continue;
+      if (hasCap) {
+        capped.push(s);
+        continue;
+      }
       const already = (await s.page.locator("text=あなたの入札").count()) > 0;
       s.amending = already;
       if (already) amending++;
@@ -145,7 +155,7 @@ try {
             .click();
           await settle(s.page);
           const ok = await s.page
-            .waitForSelector("text=あなたの入札", { timeout: 30000 })
+            .waitForSelector("text=あなたの入札", { timeout: 15000 })
             .then(() => true)
             .catch(() => false);
           if (!ok) {
@@ -199,6 +209,26 @@ try {
       visible === bidders.length,
       `${visible}/${bidders.length}`
     );
+
+    // ---------- 1b. the bid ceiling is enforced ----------
+    if (capped.length) {
+      const s = capped[0];
+      await s.page.goto(BASE + target, { waitUntil: "networkidle" });
+      await s.page.locator('input[name="amount"]').fill(String(Math.round(minimum * 1.3)));
+      await s.page
+        .locator('form:has(input[name="amount"]) button[type="submit"]')
+        .first()
+        .click();
+      await settle(s.page);
+      const refused = await s.page
+        .waitForSelector("text=入札上限額を超えています", { timeout: 15000 })
+        .then(() => true)
+        .catch(() => false);
+      const noBid = (await s.page.locator("text=あなたの入札").count()) === 0;
+      log("入札上限を超える入札は理由を示して拒否される", refused && noBid);
+    } else {
+      log("入札上限を超える入札は理由を示して拒否される", false, "no capped member available");
+    }
 
     // ---------- 2. one bidder, two submissions at once ----------
     if (bidders.length) {
