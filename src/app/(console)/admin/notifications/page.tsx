@@ -142,7 +142,7 @@ export default async function NotificationsPage({
                   </td>
                   <td>
                     <Badge tone={n.status === "SENT" ? "success" : "warn"} dot>
-                      {n.status}
+                      {dict.notifyStatus[n.status as keyof typeof dict.notifyStatus] ?? n.status}
                     </Badge>
                   </td>
                 </tr>

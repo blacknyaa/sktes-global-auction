@@ -5,6 +5,7 @@ import { LocaleSwitcher } from "../LocaleSwitcher";
 import { ThemeToggle } from "../ThemeToggle";
 import { NavLinks, type NavItem } from "./NavLinks";
 import { Badge } from "../ui";
+import { SubmitButton } from "../SubmitButton";
 import { getDictionary, getLocale } from "@/i18n";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth";
@@ -62,14 +63,14 @@ export async function ConsoleShell({
       },
       {
         href: "/admin/fraud",
-        label: "不正監視",
+        label: dict.admin.fraudTitle,
         icon: "fraud",
         badge: openSignals || undefined,
       },
       { href: "/admin/notifications", label: dict.nav.notifications, icon: "bell" },
       { href: "/admin/audit", label: dict.nav.audit, icon: "audit" },
       { href: "/reports", label: dict.nav.reports, icon: "report" },
-      { href: "/admin/demo", label: "デモ設定", icon: "demo" }
+      { href: "/admin/demo", label: dict.nav.demo, icon: "demo" }
     );
   }
   items.push({ href: "/settings/security", label: dict.nav.settings, icon: "settings" });
@@ -107,9 +108,9 @@ export async function ConsoleShell({
             </p>
           </div>
           <form action={logoutAction} className="mt-2">
-            <button type="submit" className="btn btn-ghost w-full">
+            <SubmitButton className="btn-ghost w-full" pendingLabel={dict.common.processing}>
               {dict.common.logout}
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </aside>
@@ -129,9 +130,9 @@ export async function ConsoleShell({
               <ThemeToggle />
               <LocaleSwitcher current={locale} />
               <form action={logoutAction} className="lg:hidden">
-                <button type="submit" className="btn btn-ghost px-3 py-1.5 text-xs">
+                <SubmitButton className="btn-ghost px-3 py-1.5 text-xs">
                   {dict.common.logout}
-                </button>
+                </SubmitButton>
               </form>
             </div>
           </div>

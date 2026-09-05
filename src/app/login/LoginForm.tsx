@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { loginAction, type LoginState } from "./actions";
 import { FormError } from "@/components/form";
+import { SubmitButton } from "@/components/SubmitButton";
 
 type Labels = {
   email: string;
@@ -15,11 +15,8 @@ type Labels = {
 };
 
 function Submit({ label }: { label: string }) {
-  const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn btn-primary w-full" disabled={pending}>
-      {pending ? "..." : label}
-    </button>
+    <SubmitButton className="btn-primary w-full">{label}</SubmitButton>
   );
 }
 

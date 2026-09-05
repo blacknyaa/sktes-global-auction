@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { getDictionary } from "@/i18n";
 import { PageHeader } from "@/components/console/ConsoleShell";
 import { Card } from "@/components/ui";
+import { DangerSubmitButton } from "@/components/SubmitButton";
 import { resetDemoAction } from "./actions";
 
 export const metadata: Metadata = { title: "デモ設定" };
@@ -72,9 +73,12 @@ export default async function DemoAdminPage() {
             この機能はデモ環境専用です。本番構成では、この画面自体が存在しません。
           </p>
           <form action={resetDemoAction} className="mt-4">
-            <button type="submit" className="btn btn-danger">
+            <DangerSubmitButton
+              confirm="デモデータをすべて作り直します。現在のログインも解除されます。よろしいですか。"
+              pendingLabel="初期化しています"
+            >
               初期状態に戻す
-            </button>
+            </DangerSubmitButton>
           </form>
         </Card>
 

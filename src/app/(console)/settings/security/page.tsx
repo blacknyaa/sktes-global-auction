@@ -6,6 +6,7 @@ import { getDictionary, getLocale } from "@/i18n";
 import { otpauthUrl } from "@/lib/totp";
 import { PageHeader } from "@/components/console/ConsoleShell";
 import { Badge, Card } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateTime } from "@/lib/datetime";
 import {
   beginMfaAction,
@@ -62,9 +63,9 @@ export default async function SecurityPage() {
 
           {row?.mfaEnabled ? (
             <form action={disableMfaAction} className="mt-5">
-              <button type="submit" className="btn btn-danger">
+              <SubmitButton className="btn-danger" confirm={dict.auth.confirmDisableMfa} pendingLabel={dict.common.processing}>
                 {dict.auth.mfaDisable}
-              </button>
+              </SubmitButton>
             </form>
           ) : secret ? (
             <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -85,7 +86,10 @@ export default async function SecurityPage() {
                   <p className="text-xs font-semibold text-muted">
                     {dict.auth.mfaManual}
                   </p>
-                  <p className="mt-1 select-all break-all rounded-lg bg-surface-2 px-3 py-2 font-mono text-sm font-semibold text-ink">
+                  <p
+                    data-testid="mfa-secret"
+                    className="mt-1 select-all break-all rounded-lg bg-surface-2 px-3 py-2 font-mono text-sm font-semibold text-ink"
+                  >
                     {secret.replace(/(.{4})/g, "$1 ").trim()}
                   </p>
                 </div>
@@ -105,9 +109,12 @@ export default async function SecurityPage() {
             </div>
           ) : (
             <form action={beginMfaAction} className="mt-5">
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton
+                data-testid="begin-mfa"
+                pendingLabel={dict.common.processing}
+              >
                 {dict.auth.mfaEnable}
-              </button>
+              </SubmitButton>
             </form>
           )}
         </Card>
@@ -140,9 +147,9 @@ export default async function SecurityPage() {
               {dict.auth.sessionsTitle}
             </h2>
             <form action={revokeOtherSessionsAction}>
-              <button type="submit" className="btn btn-ghost px-3 py-1.5 text-xs">
+              <SubmitButton className="btn-ghost px-3 py-1.5 text-xs" confirm={dict.auth.confirmRevokeSessions} pendingLabel={dict.common.processing}>
                 {dict.auth.revokeOthers}
-              </button>
+              </SubmitButton>
             </form>
           </div>
 

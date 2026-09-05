@@ -155,10 +155,8 @@ export default async function ContractsPage({
                     </td>
                     <td>
                       {invoice ? (
-                        <Badge tone={invoice.status === "PAID" ? "success" : "warn"}>
-                          {invoice.status === "PAID"
-                            ? dict.contract.paidAt
-                            : dict.contract.dueAt}
+                        <Badge tone={invoice.status === "PAID" ? "success" : "warn"} dot>
+                          {dict.invoiceStatus[invoice.status as keyof typeof dict.invoiceStatus] ?? invoice.status}
                         </Badge>
                       ) : (
                         "—"

@@ -51,3 +51,6 @@ storage/
 
 # client-supplied requirement documents - not ours to redistribute
 /docs/
+
+# test fixtures generated at run time
+.tmp-test/
