@@ -45,6 +45,18 @@ export async function GET() {
     // connection string carries credentials and never leaves this process.
     connectionStringVariables: presentDatabaseUrlNames(),
     checkedVariableNames: [...DATABASE_URL_CANDIDATES],
+    // Every variable name the runtime can see, so a database that was
+    // connected under a name nobody expected still shows up. Names only -
+    // no value is ever read here, and the platform's own build variables
+    // are dropped because they are noise, not configuration.
+    allVariableNames: Object.keys(process.env)
+      .filter(
+        (k) =>
+          !/^(npm_|NEXT_RUNTIME|__NEXT|NODE|PATH$|PWD$|HOME$|HOSTNAME$|SHLVL$|_$)/.test(
+            k
+          )
+      )
+      .sort(),
     databaseKind: dbUrl?.startsWith("postgres")
       ? "postgresql"
       : dbUrl?.startsWith("file:")
