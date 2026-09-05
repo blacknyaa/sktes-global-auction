@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/session";
 import { zoneLabel } from "@/lib/datetime";
+import { usingBundledDemoDb } from "@/lib/runtime";
 
 export async function ConsoleShell({
   user,
@@ -157,6 +158,25 @@ export async function ConsoleShell({
             </div>
           </div>
         </header>
+
+        {/*
+          Without a configured database the app runs from a copy of the
+          bundled demo data held per instance, and a serverless host spreads
+          consecutive requests across many instances - measured at nine to
+          twenty in a single browsing session. Reading is therefore perfect
+          and consistent, while a write survives only if the next request
+          happens to land on the same instance. Saying so plainly is better
+          than letting someone place a bid and wonder why it vanished.
+        */}
+        {usingBundledDemoDb() && (
+          <div className="border-b border-warn/30 bg-warn-bg px-4 py-2.5 sm:px-6">
+            <p className="text-xs leading-relaxed text-warn">
+              <span className="font-bold">簡易デモモードで動作中です。</span>{" "}
+              全画面をご覧いただけますが、入札や承認などの操作結果は保存されない場合があります。
+              データベースを接続すると、操作内容がそのまま保持されます。
+            </p>
+          </div>
+        )}
 
         <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8">
           {children}
