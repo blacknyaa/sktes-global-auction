@@ -11,8 +11,8 @@ export async function PublicHeader() {
   const dict = await getDictionary();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur-md">
-      <div className="ichimatsu-band text-[12px] font-bold text-brand-800">
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur-md">
+      <div className="ichimatsu-band text-[12px] font-bold text-brand">
         <Container wide className="flex h-8 items-center justify-between">
           <p className="font-serif tracking-wider">
             {locale === "zh"
@@ -27,7 +27,7 @@ export async function PublicHeader() {
         </Container>
       </div>
       <Container wide className="relative flex h-16 items-center justify-between gap-4">
-        <Link href="/" aria-label="SK TES グローバル競売" className="fx">
+        <Link href="/" aria-label={dict.meta.siteName} className="fx">
           <Logo />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
@@ -39,7 +39,7 @@ export async function PublicHeader() {
             <Link
               key={n.href}
               href={n.href}
-              className="rounded-lg px-3 py-2 text-sm font-bold text-ink-2 hover:bg-brand-50 hover:text-brand-700"
+              className="rounded-lg px-3 py-2 text-sm font-bold text-ink-2 hover:bg-brand-50 hover:text-brand"
             >
               {n.label}
             </Link>

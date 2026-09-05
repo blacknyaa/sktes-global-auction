@@ -155,10 +155,10 @@ export default async function GuidePage() {
     <>
       <PublicHeader />
       <main id="main">
-        <section className="border-b border-line bg-white">
+        <section className="border-b border-line bg-surface">
           <div className="grid lg:grid-cols-2">
             <div className="px-5 py-14 sm:px-10 lg:py-20">
-              <WaTitle tate="案内" kicker={dict.footer.demoNotice} title={dict.nav.guide} lead={content.lead} />
+              <WaTitle as="h1" tate="案内" kicker={dict.footer.demoNotice} title={dict.nav.guide} lead={content.lead} />
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href="/login" className="btn btn-primary">
                   {dict.home.ctaPrimary}

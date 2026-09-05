@@ -44,6 +44,9 @@
   --vermilion: #d42b2b;
   --indigo: #163a6b;
   --washi: #fff8f2;
+  --indigo-ink: var(--indigo);
+  --vermilion-ink: var(--vermilion);
+  --paper-texture: url("/images/asanoha-light.png");
 
   --shadow-sm: 0 1px 2px rgb(18 32 51 / 0.05), 0 1px 3px rgb(18 32 51 / 0.04);
   --shadow-md: 0 8px 24px rgb(22 119 255 / 0.1);
@@ -75,6 +78,17 @@
     --info-bg: #132a4a;
     --seal: #fb7185;
     --seal-bg: #3f1520;
+    --washi: #101a29;
+    --gold-soft: #2b2413;
+    --paper-texture: none;
+    --glow-blend: screen;
+    --brand-50: #13243d;
+    --brand-100: #17304f;
+    --brand-200: #21406a;
+    --brand-700: #9cc6ff;
+    --brand-800: #c2ddff;
+    --indigo-ink: #b9d3f5;
+    --vermilion-ink: #ff8a8a;
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
     --shadow-md: 0 8px 24px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 18px 40px rgb(0 0 0 / 0.5);
@@ -104,6 +118,17 @@
   --info-bg: #132a4a;
   --seal: #fb7185;
   --seal-bg: #3f1520;
+  --washi: #101a29;
+  --gold-soft: #2b2413;
+  --paper-texture: none;
+  --glow-blend: screen;
+  --brand-50: #13243d;
+  --brand-100: #17304f;
+  --brand-200: #21406a;
+  --brand-700: #9cc6ff;
+  --brand-800: #c2ddff;
+  --indigo-ink: #b9d3f5;
+  --vermilion-ink: #ff8a8a;
 }
 
 @theme inline {
@@ -161,11 +186,11 @@ html[data-theme="dark"] {
 
 body {
   background:
-    url("/images/asanoha-light.png"),
+    var(--paper-texture),
     radial-gradient(900px 420px at 0% 0%, rgb(22 119 255 / 0.1), transparent 55%),
     radial-gradient(800px 380px at 100% 8%, rgb(212 43 43 / 0.05), transparent 50%),
     radial-gradient(700px 340px at 100% 100%, rgb(201 162 74 / 0.1), transparent 48%),
-    #fff8f2;
+    var(--washi);
   background-size: 280px 280px, auto, auto, auto, auto;
   color: var(--ink);
   font-family: var(--font-sans);
@@ -267,7 +292,7 @@ dd {
   }
 
   .btn-ghost {
-    background: #fff;
+    background: var(--surface);
     color: var(--ink-2);
     border-color: var(--line-strong);
   }
@@ -305,7 +330,7 @@ dd {
 
   .input {
     width: 100%;
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--line-strong);
     border-radius: 0.75rem;
     padding: 0.6rem 0.85rem;
@@ -749,7 +774,7 @@ a:hover .logo-mon,
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 700;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 0 0 3px rgb(212 43 43 / 0.08);
 }
 
@@ -802,11 +827,11 @@ a:hover .logo-mon,
   font-family: "Yuji Syuku", var(--font-display);
   font-size: 0.95rem;
   letter-spacing: 0.2em;
-  color: var(--indigo);
+  color: var(--indigo-ink);
 }
 
 .ichimatsu-band {
-  background-color: #eef4fc;
+  background-color: var(--surface-2);
   background-image:
     linear-gradient(45deg, rgb(22 58 107 / 0.07) 25%, transparent 25%),
     linear-gradient(-45deg, rgb(22 58 107 / 0.07) 25%, transparent 25%),
@@ -856,7 +881,7 @@ a:hover .logo-mon,
   pointer-events: none;
   border-radius: 999px;
   background: radial-gradient(circle, rgb(22 119 255 / 0.12), transparent 68%);
-  mix-blend-mode: multiply;
+  mix-blend-mode: var(--glow-blend, multiply);
 }
 
 .kinpaku {
@@ -1050,6 +1075,11 @@ html[data-fx="on"] .reveal.is-in {
   }
   body {
     background: #fff;
+  }
+  .reveal,
+  html[data-fx="on"] .reveal {
+    opacity: 1;
+    transform: none;
   }
   .print\:hidden {
     display: none !important;

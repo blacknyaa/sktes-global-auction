@@ -74,7 +74,7 @@ export default async function TermsPage() {
     <>
       <PublicHeader />
       <main id="main">
-        <section className="border-b border-line bg-white">
+        <section className="border-b border-line bg-surface">
           <Container className="relative py-14">
             <Hanko className="stamp-in absolute right-4 top-8 hidden sm:block" size={88} />
             <p className="season-mark">規約</p>

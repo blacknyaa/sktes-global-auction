@@ -83,7 +83,7 @@ export function LotCard({
           </Fuda>
         </div>
         <div className="flex items-start justify-between gap-3 px-5 pt-4">
-          <span className="font-mono text-[11px] text-brand-700">{lot.lotNumber}</span>
+          <span className="font-mono text-[11px] text-brand">{lot.lotNumber}</span>
           <Badge tone={LOT_STATUS_TONE[lot.status] ?? "neutral"} dot>
             {labels.status[lot.status] ?? lot.status}
           </Badge>

@@ -12,7 +12,7 @@ export async function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-line bg-white">
+    <footer className="border-t border-line bg-surface">
       <div className="wave-band" />
       <Container wide className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-3">
         <div>
@@ -20,8 +20,8 @@ export async function SiteFooter() {
             <LogoMark size={32} />
             <div>
               <p className="text-[15px] font-extrabold text-ink">SK TES</p>
-              <p className="font-serif text-[11px] font-bold tracking-[0.18em] text-brand-700">
-                グローバル競売
+              <p className="font-serif text-[11px] font-bold tracking-[0.18em] text-brand">
+                {dict.meta.brandSub}
               </p>
             </div>
             <Crane size={40} className="ml-auto hidden sm:block" />
@@ -29,25 +29,25 @@ export async function SiteFooter() {
           <p className="mt-4 text-sm leading-relaxed text-ink-2">{dict.meta.description}</p>
         </div>
         <div>
-          <p className="font-serif text-xs font-extrabold tracking-[0.2em] text-brand-700">案内</p>
+          <p className="font-serif text-xs font-extrabold tracking-[0.2em] text-brand">案内</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <Link href="/lots" className="text-ink-2 hover:text-brand-600">
+              <Link href="/lots" className="text-ink-2 hover:text-brand">
                 {dict.nav.lots}
               </Link>
             </li>
             <li>
-              <Link href="/guide" className="text-ink-2 hover:text-brand-600">
+              <Link href="/guide" className="text-ink-2 hover:text-brand">
                 {dict.nav.guide}
               </Link>
             </li>
             <li>
-              <Link href="/terms" className="text-ink-2 hover:text-brand-600">
+              <Link href="/terms" className="text-ink-2 hover:text-brand">
                 {dict.nav.terms}
               </Link>
             </li>
             <li>
-              <Link href="/register" className="text-ink-2 hover:text-brand-600">
+              <Link href="/register" className="text-ink-2 hover:text-brand">
                 {dict.common.register}
               </Link>
             </li>
@@ -55,7 +55,7 @@ export async function SiteFooter() {
           <p className="mt-4 text-xs text-muted">{dict.footer.security}</p>
         </div>
         <div>
-          <p className="font-serif text-xs font-extrabold tracking-[0.2em] text-brand-700">
+          <p className="font-serif text-xs font-extrabold tracking-[0.2em] text-brand">
             {dict.home.statsCountries}
           </p>
           <ul className="mt-3 flex flex-wrap gap-1.5">

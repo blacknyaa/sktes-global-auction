@@ -94,7 +94,7 @@ const page = await context.newPage();
 // Confirmation dialogs are part of the product now; accept them like a user would.
 context.on("page", (p) => p.on("dialog", (d) => d.accept()));
 page.on("dialog", (d) => d.accept());
-page.on("pageerror", (e) => console.log("  [page error]", e.message));
+page.on("pageerror", (e) => console.log("  [page error]", page.url(), e.message));
 
 try {
   // ---------------------------------------------------------------- public
@@ -102,7 +102,13 @@ try {
     await page.goto(BASE, { waitUntil: "networkidle" });
     await shot(page, "01-landing");
     log("landing renders", (await page.locator("h1").count()) > 0);
-    log("sealed ciphertext visible", (await page.locator("text=ENCRYPTED").count()) > 0);
+    log(
+      "sealed ciphertext visible",
+      (await page.locator("[data-sealed-cipher]").count()) > 0 &&
+        /^[0-9A-F]{4} [0-9A-F]{4}/.test(
+          ((await page.locator("[data-sealed-cipher]").first().textContent()) ?? "").trim()
+        )
+    );
 
     await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" });
     await shot(page, "02-register");

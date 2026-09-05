@@ -3,6 +3,7 @@ import type { Dictionary } from "./ja";
 export const zh: Dictionary = {
   meta: {
     siteName: "SK TES Global Auction",
+    brandSub: "全球竞拍",
     tagline: "全球21个据点的IT资产，以密封投标方式出售。",
     description:
       "SK TES集团21个国家的据点上架个人电脑、服务器、移动设备与配件，经审核的全球买家可参与投标采购的封闭式企业竞拍平台。",

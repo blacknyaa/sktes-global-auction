@@ -1,3 +1,5 @@
+import { getDictionary } from "@/i18n";
+
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
     <svg
@@ -36,13 +38,15 @@ export function LogoMark({ size = 32 }: { size?: number }) {
   );
 }
 
-export function Logo({
+export async function Logo({
   compact = false,
   inverted = false,
 }: {
   compact?: boolean;
   inverted?: boolean;
 }) {
+  const dict = await getDictionary();
+
   return (
     <span className="inline-flex items-center gap-2.5">
       <LogoMark size={compact ? 28 : 34} />
@@ -60,10 +64,10 @@ export function Logo({
           className={
             inverted
               ? "block font-serif text-[11px] font-bold tracking-[0.18em] text-white/80"
-              : "block font-serif text-[11px] font-bold tracking-[0.18em] text-brand-700"
+              : "block font-serif text-[11px] font-bold tracking-[0.18em] text-brand"
           }
         >
-          グローバル競売
+          {dict.meta.brandSub}
         </span>
       </span>
     </span>

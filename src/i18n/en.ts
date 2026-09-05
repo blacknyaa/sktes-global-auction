@@ -3,6 +3,7 @@ import type { Dictionary } from "./ja";
 export const en: Dictionary = {
   meta: {
     siteName: "SK TES Global Auction",
+    brandSub: "Global Auction",
     tagline: "IT assets from 21 sites worldwide, sold by sealed bid.",
     description:
       "A closed B2B auction platform where SK TES group sites in 21 countries list PCs, servers, mobile devices and components, and vetted global buyers bid to buy.",
