@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  bundledDemoDbExists,
+  demoModeEnabled,
+  hasDatabaseUrl,
+  usingBundledDemoDb,
+  usingFallbackSecrets,
+} from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -100,30 +107,47 @@ export async function GET() {
   // SQLite is the right answer locally and the wrong answer on a serverless
   // host, so the verdict depends on where this is running.
   const onServerless = Boolean(process.env.VERCEL);
+  const bundled = usingBundledDemoDb();
 
-  const diagnosis = !env.DATABASE_URL
-    ? "DATABASE_URL が設定されていません。Vercel の環境変数に追加してから再デプロイしてください。"
-    : onServerless && env.databaseKind === "sqlite"
-      ? "DATABASE_URL が SQLite を指しています。サーバーレスでは動きません。PostgreSQL の接続文字列に変更してください。"
-      : !connection.ok
-        ? "データベースに接続できません。接続文字列（pooled を選んでいるか）と、ホスト側でアクセスが許可されているかを確認してください。"
-        : !schema.ok
-          ? "接続はできていますが、表が無いかデータが空です。手元から `npm run db:deploy` を実行してください。"
+  const mode = {
+    // Running from the database baked into the build, not a configured one.
+    bundledDemoDatabase: bundled,
+    bundledFilePresent: bundledDemoDbExists(),
+    usingFallbackSecrets: usingFallbackSecrets(),
+    demoResetAvailable: demoModeEnabled(),
+    persistence: hasDatabaseUrl()
+      ? "configured database (permanent, shared)"
+      : bundled
+        ? "per-instance temporary copy (resets when the instance recycles)"
+        : "none",
+  };
+
+  const diagnosis = !connection.ok
+    ? !env.DATABASE_URL && !mode.bundledFilePresent
+      ? "DATABASE_URL が未設定で、同梱のデモ用データベースも見つかりません。環境変数を設定して再デプロイしてください。"
+      : "データベースに接続できません。接続文字列（pooled を選んでいるか）と、ホスト側でアクセスが許可されているかを確認してください。"
+    : !schema.ok
+      ? "接続はできていますが、表が無いかデータが空です。手元から `npm run db:deploy` を実行してください。"
+      : bundled
+        ? "同梱のデモ用データベースで動作中です。そのまま操作できますが、状態はインスタンス単位で、しばらく使われないと初期状態に戻ります。恒久的に保持するには DATABASE_URL に PostgreSQL の接続文字列を設定してください。"
+        : onServerless && env.databaseKind === "sqlite"
+          ? "DATABASE_URL が SQLite を指しています。サーバーレスでは動きません。PostgreSQL の接続文字列に変更してください。"
           : env.SEAL_MASTER_KEY !== "ok"
             ? "データベースは正常ですが、SEAL_MASTER_KEY が未設定か形式が誤っています（64桁の16進数）。"
             : !env.SESSION_SECRET
               ? "データベースは正常ですが、SESSION_SECRET が未設定です。ログインが維持できません。"
               : "問題は見つかりませんでした。";
 
+  // The demo is usable as long as it can read and write its own data. Missing
+  // secrets are a warning in demo mode and a failure once a real database is
+  // configured, because at that point the data stops being disposable.
   const healthy =
     connection.ok &&
     schema.ok &&
-    env.SEAL_MASTER_KEY === "ok" &&
-    env.SESSION_SECRET &&
-    !(onServerless && env.databaseKind === "sqlite");
+    (bundled || (env.SEAL_MASTER_KEY === "ok" && Boolean(env.SESSION_SECRET)));
 
   return NextResponse.json(
-    { healthy, diagnosis, env, build, connection, schema },
+    { healthy, diagnosis, mode, env, build, connection, schema },
     { status: healthy ? 200 : 503, headers: { "cache-control": "no-store" } }
   );
 }

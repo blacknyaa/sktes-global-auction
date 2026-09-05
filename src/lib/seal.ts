@@ -10,6 +10,7 @@ import {
   randomBytes,
   constants as cryptoConstants,
 } from "node:crypto";
+import { sealMasterKey } from "./runtime";
 
 /**
  * Sealed-bid (blind bid) engine.
@@ -34,15 +35,14 @@ import {
  * developer, DBA - can read a bid amount.
  */
 
-const MASTER_KEY_HEX = process.env.SEAL_MASTER_KEY ?? "";
-
 function masterKey(): Buffer {
-  if (!/^[0-9a-f]{64}$/i.test(MASTER_KEY_HEX)) {
+  const hex = sealMasterKey();
+  if (!/^[0-9a-f]{64}$/i.test(hex)) {
     throw new Error(
       "SEAL_MASTER_KEY must be a 64-character hex string (32 bytes)."
     );
   }
-  return Buffer.from(MASTER_KEY_HEX, "hex");
+  return Buffer.from(hex, "hex");
 }
 
 export type LotSeal = {

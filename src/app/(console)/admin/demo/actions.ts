@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { destroySession } from "@/lib/auth";
+import { demoModeEnabled } from "@/lib/runtime";
 
 /**
  * Resets the demo to its opening position.
@@ -14,7 +15,7 @@ import { destroySession } from "@/lib/auth";
  */
 export async function resetDemoAction(): Promise<void> {
   await requireRole("ADMIN");
-  if (process.env.DEMO_MODE !== "true") return;
+  if (!demoModeEnabled()) return;
 
   const { runSeed } = await import("../../../../../prisma/seed/index");
   await runSeed();

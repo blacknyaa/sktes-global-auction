@@ -54,3 +54,7 @@ storage/
 
 # test fixtures generated at run time
 .tmp-test/
+
+# built at deploy time, never committed
+prisma/demo.db
+prisma/demo.db-journal

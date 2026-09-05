@@ -2,15 +2,35 @@
 
 クライアントに URL を渡すための手順です。
 
-> **エラー「Application error: a server-side exception has occurred」が出る場合**
-> ほぼ確実に、データベースが用意されていないか `DATABASE_URL` が未設定です。
-> SQLite はサーバーレス環境では動きません（ファイルシステムが揮発性かつ
-> 読み取り専用で、`dev.db` はリポジトリにも含めていません）。
-> 下記の手順1を飛ばすとこのエラーになります。
+## 設定なしでも動きます
+
+**環境変数を1つも設定しなくても、デプロイすればそのまま動きます。**
+ビルド時に初期データ入りのデータベースを同梱し、起動時に書き込み可能な
+一時領域へ展開するためです。ログイン・入札・封印解除・落札まで、
+すべての機能がそのまま使えます。
+
+ただし1点だけ制約があります。
+
+| | 設定なし | `DATABASE_URL` を設定 |
+|---|---|---|
+| 全機能の動作 | ○ | ○ |
+| 状態の保持 | インスタンス単位。しばらく使われないと初期状態に戻る | 永続・全員で共有 |
+| 複数人で同時に見る | 人によって見えている状態が違う場合がある | 全員が同じ状態を見る |
+
+面談で1人が触る分には設定なしで十分です。先方に URL を渡して各自の
+ペースで触ってもらうなら、下記の PostgreSQL を設定してください。
+
+現在の動作モードは `/api/health` の `mode` で確認できます。
 
 ---
 
-## 手順1：PostgreSQL を用意する（必須・5分）
+## 手順1：PostgreSQL を用意する（任意・5分）
+
+**いちばん簡単な方法**：Vercel のプロジェクト画面上部の **Storage** タブ →
+**Create Database** → **Neon**。これだけで `DATABASE_URL` が自動的に
+環境変数へ登録されます。
+
+手動で用意する場合は以下のとおりです。
 
 無料枠で足ります。Neon（https://neon.tech）が最短です。
 
@@ -21,7 +41,7 @@
 
 Supabase でも同じことができます。接続文字列の形式が同じであれば何でも構いません。
 
-## 手順2：鍵を2つ生成する
+## 手順2：鍵を2つ生成する（PostgreSQL を使う場合のみ）
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # SEAL_MASTER_KEY
@@ -33,7 +53,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"  
 > 入札は復号できなくなります（設計上そうなっています）。
 > リポジトリには絶対に置かず、本番では Azure Key Vault などに保管します。
 
-## 手順3：Vercel に環境変数を登録する
+## 手順3：Vercel に環境変数を登録する（PostgreSQL を使う場合のみ）
 
 Vercel のプロジェクト設定 → Settings → Environment Variables に、
 **Production / Preview / Development すべてにチェックを入れて**登録します。
@@ -108,7 +128,7 @@ BASE_URL=https://xxx.vercel.app node scripts/flow.mjs --no-seed
 
 | 症状 | 原因 | 対処 |
 |---|---|---|
-| `Application error: a server-side exception` | `DATABASE_URL` 未設定、または SQLite のまま | 手順1〜3をやり直し、再デプロイ |
+| `Application error: a server-side exception` | 同梱データベースが壊れているか、DATABASE_URL の設定が誤っている | `/api/health` の `diagnosis` を確認 |
 | 画面は出るがログインできない | デモデータが入っていない | 手順4を実行 |
 | 封印解除でエラー | `SEAL_MASTER_KEY` が投入時と実行時で違う | 同じ鍵に揃えて手順4をやり直す |
 | ログインしてもすぐログアウトされる | `SESSION_SECRET` 未設定 | 手順3で登録し、再デプロイ |
