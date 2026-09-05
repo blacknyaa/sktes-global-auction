@@ -10,8 +10,7 @@ import {
 } from "@/lib/auth";
 import { generateTotpSecret, verifyTotp } from "@/lib/totp";
 import { writeAudit } from "@/lib/audit";
-import { cookies } from "next/headers";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { currentSessionToken } from "@/lib/auth";
 
 export type SecurityState = { ok?: string; error?: string };
 
@@ -100,7 +99,7 @@ export async function changePasswordAction(
 
 export async function revokeOtherSessionsAction(): Promise<void> {
   const user = await requireUser();
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const token = await currentSessionToken();
   await prisma.session.deleteMany({
     where: {
       userId: user.id,
