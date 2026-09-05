@@ -75,7 +75,7 @@ export function RegisterWizard({
                 i < step
                   ? "bg-success-bg text-success"
                   : i === step
-                    ? "bg-gradient-to-br from-brand-500 to-brand-800 text-white"
+                    ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white"
                     : "bg-surface-3 text-muted"
               )}
             >

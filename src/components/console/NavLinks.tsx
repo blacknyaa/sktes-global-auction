@@ -107,7 +107,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
             className={clsx(
               "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
               active
-                ? "bg-gradient-to-r from-brand-700 to-brand-600 text-white shadow-md"
+                ? "bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md"
                 : "text-ink-2 hover:bg-surface-3 hover:text-ink"
             )}
           >

@@ -1,9 +1,29 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { KikuMark } from "./Ornaments";
 
+/** Screens that carry business data, where the decoration would sit on top of it. */
+const WORKSPACE = [
+  "/dashboard",
+  "/bids",
+  "/contracts",
+  "/listings",
+  "/lots",
+  "/reports",
+  "/settings",
+  "/admin",
+  "/invoice",
+  "/denied",
+];
+
 export function AmbientFX() {
+  const pathname = usePathname();
+  const workspace = WORKSPACE.some(
+    (p) => pathname === p || pathname.startsWith(`src/components/visual/AmbientFX.tsx/`)
+  );
+
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
@@ -55,17 +75,41 @@ export function AmbientFX() {
       { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
     );
 
+    // Anything this touches, React may still be hydrating. Marking a node
+    // with an attribute or a class while its markup is being adopted makes the
+    // server HTML and the client tree disagree, so the whole subtree is thrown
+    // away and drawn again. The nodes already seen are therefore remembered
+    // off to one side, and none of it starts until the document has finished
+    // loading and hydration is over.
+    const seen = new WeakSet<Element>();
     const watch = () => {
-      document.querySelectorAll(".reveal:not([data-watched])").forEach((node) => {
-        node.setAttribute("data-watched", "1");
+      document.querySelectorAll(".reveal").forEach((node) => {
+        if (seen.has(node)) return;
+        seen.add(node);
         io.observe(node);
       });
     };
 
-    document.documentElement.setAttribute("data-fx", "on");
     const mo = new MutationObserver(watch);
-    mo.observe(document.body, { childList: true, subtree: true });
-    watch();
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      // Whatever is already on screen stays on screen: settle it before the
+      // fade-in rule starts applying, or the page would blink once.
+      document.querySelectorAll(".reveal").forEach((node) => {
+        const box = node.getBoundingClientRect();
+        if (box.top < window.innerHeight * 0.92 && box.bottom > 0) {
+          node.classList.add("is-in");
+        }
+      });
+      document.documentElement.setAttribute("data-fx", "on");
+      mo.observe(document.body, { childList: true, subtree: true });
+      watch();
+    };
+    const startWhenIdle = () => requestAnimationFrame(() => requestAnimationFrame(start));
+    if (document.readyState === "complete") startWhenIdle();
+    else window.addEventListener("load", startWhenIdle, { once: true });
 
     document.addEventListener("click", onClick);
     document.addEventListener("mousemove", onMove);
@@ -74,6 +118,7 @@ export function AmbientFX() {
       document.removeEventListener("click", onClick);
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseout", onOut);
+      window.removeEventListener("load", startWhenIdle);
       mo.disconnect();
       io.disconnect();
     };
@@ -82,8 +127,12 @@ export function AmbientFX() {
   return (
     <>
       <div id="cursor-glow" className="cursor-glow" aria-hidden="true" />
-      <div className="lantern-float lantern-float-l" aria-hidden="true" />
-      <div className="lantern-float lantern-float-r" aria-hidden="true" />
+      {!workspace && (
+        <>
+          <div className="lantern-float lantern-float-l" aria-hidden="true" />
+          <div className="lantern-float lantern-float-r" aria-hidden="true" />
+        </>
+      )}
     </>
   );
 }
@@ -93,12 +142,15 @@ export function WaTitle({
   kicker,
   title,
   lead,
+  as = "h2",
 }: {
   tate: string;
   kicker: string;
   title: string;
   lead?: string;
+  as?: "h1" | "h2";
 }) {
+  const Heading = as;
   return (
     <div className="reveal flex items-start gap-5">
       <span className="tategaki hidden pt-1 text-sm sm:block">{tate}</span>
@@ -108,9 +160,9 @@ export function WaTitle({
           {kicker}
           <KikuMark />
         </p>
-        <h2 className="font-serif mt-2 text-3xl font-bold tracking-wide text-ink sm:text-4xl">
+        <Heading className="font-serif mt-2 text-3xl font-bold tracking-wide text-ink sm:text-4xl">
           {title}
-        </h2>
+        </Heading>
         {lead && <p className="mt-3 max-w-2xl text-base text-ink-2">{lead}</p>}
         <span className="mizuhiki" />
       </div>

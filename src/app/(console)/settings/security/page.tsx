@@ -70,7 +70,7 @@ export default async function SecurityPage() {
           ) : secret ? (
             <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
               {qrDataUrl && (
-                <div className="shrink-0 rounded-xl border border-line bg-white p-3">
+                <div className="shrink-0 rounded-xl border border-line bg-surface p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={qrDataUrl}
