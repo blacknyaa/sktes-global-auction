@@ -98,6 +98,7 @@ export const ja = {
     demoTitle: "デモアカウント",
     demoLead:
       "3つの役割で、それぞれ別の画面が出ます。パスワードはすべて共通です。",
+    demoFill: "デモ用・ワンクリックで入力",
     demoAdmin: "管理者（SK TES 日本）",
     demoSeller: "出品者（SK TES 各国拠点）",
     demoBidder: "応札者（海外バイヤー）",

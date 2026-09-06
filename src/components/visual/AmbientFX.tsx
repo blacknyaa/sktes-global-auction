@@ -69,75 +69,70 @@ export function AmbientFX() {
       }
     };
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) entry.target.classList.add("is-in");
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
-    );
-
-    // Anything this touches, React may still be hydrating. Marking a node
-    // with an attribute or a class while its markup is being adopted makes the
-    // server HTML and the client tree disagree, so the whole subtree is thrown
-    // away and drawn again. The nodes already seen are therefore remembered
-    // off to one side, and none of it starts until the document has finished
-    // loading and hydration is over.
-    const seen = new WeakSet<Element>();
-    const watch = () => {
-      document.querySelectorAll(".reveal").forEach((node) => {
-        if (seen.has(node)) return;
-        seen.add(node);
-        io.observe(node);
-      });
-    };
-
-    const mo = new MutationObserver(watch);
-    let started = false;
+    // These handlers write to the page, and React may still be adopting the
+    // server markup. Nothing is bound until the document has finished loading,
+    // by which time hydration is over. Sections that drift into view are left
+    // to CSS, so no code touches those nodes at all.
+    let bound = false;
     const start = () => {
-      if (started) return;
-      started = true;
-      // Whatever is already on screen stays on screen: settle it before the
-      // fade-in rule starts applying, or the page would blink once.
-      document.querySelectorAll(".reveal").forEach((node) => {
-        const box = node.getBoundingClientRect();
-        if (box.top < window.innerHeight * 0.92 && box.bottom > 0) {
-          node.classList.add("is-in");
-        }
-      });
-      document.documentElement.setAttribute("data-fx", "on");
-      mo.observe(document.body, { childList: true, subtree: true });
-      watch();
+      if (bound) return;
+      bound = true;
+      document.addEventListener("click", onClick);
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseout", onOut);
     };
-    const startWhenIdle = () => requestAnimationFrame(() => requestAnimationFrame(start));
+    const startWhenIdle = () =>
+      requestAnimationFrame(() => requestAnimationFrame(start));
     if (document.readyState === "complete") startWhenIdle();
     else window.addEventListener("load", startWhenIdle, { once: true });
 
-    document.addEventListener("click", onClick);
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseout", onOut);
     return () => {
       document.removeEventListener("click", onClick);
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseout", onOut);
       window.removeEventListener("load", startWhenIdle);
-      mo.disconnect();
-      io.disconnect();
     };
   }, []);
 
-  return (
-    <>
-      <div id="cursor-glow" className="cursor-glow" aria-hidden="true" />
-      {!workspace && (
-        <>
-          <div className="lantern-float lantern-float-l" aria-hidden="true" />
-          <div className="lantern-float lantern-float-r" aria-hidden="true" />
-        </>
-      )}
-    </>
-  );
+  // The decoration is put into the page by hand rather than rendered, so that
+  // React has nothing to adopt here and the body it hydrates holds only the
+  // real content. It goes in once the document has finished loading.
+  useEffect(() => {
+    let cancelled = false;
+    const nodes: HTMLElement[] = [];
+
+    const mount = () => {
+      if (cancelled) return;
+      const glow = document.createElement("div");
+      glow.id = "cursor-glow";
+      glow.className = "cursor-glow";
+      glow.setAttribute("aria-hidden", "true");
+      nodes.push(glow);
+
+      if (!workspace) {
+        for (const side of ["l", "r"]) {
+          const lantern = document.createElement("div");
+          lantern.className = `lantern-float lantern-float-${side}`;
+          lantern.setAttribute("aria-hidden", "true");
+          nodes.push(lantern);
+        }
+      }
+      document.body.append(...nodes);
+    };
+
+    const mountWhenIdle = () =>
+      requestAnimationFrame(() => requestAnimationFrame(mount));
+    if (document.readyState === "complete") mountWhenIdle();
+    else window.addEventListener("load", mountWhenIdle, { once: true });
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", mountWhenIdle);
+      for (const node of nodes) node.remove();
+    };
+  }, [workspace]);
+
+  return null;
 }
 
 export function WaTitle({
