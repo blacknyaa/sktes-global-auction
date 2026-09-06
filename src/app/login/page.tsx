@@ -53,6 +53,7 @@ export default async function LoginPage({
           invalid: dict.auth.invalidCredentials,
           locked: dict.auth.accountLocked,
           disabled: dict.auth.accountDisabled,
+          demoFill: dict.home.demoFill,
         }}
         presets={[
           { label: dict.role.ADMIN, email: "admin@sktes-demo.com" },
