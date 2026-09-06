@@ -99,6 +99,7 @@ export const en: Dictionary = {
     },
     demoTitle: "Demo accounts",
     demoLead: "Three roles, three different views. The password is the same for all.",
+    demoFill: "Demo · one click to fill",
     demoAdmin: "Administrator (SK TES Japan)",
     demoSeller: "Seller (SK TES country site)",
     demoBidder: "Bidder (overseas buyer)",

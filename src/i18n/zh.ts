@@ -99,6 +99,7 @@ export const zh: Dictionary = {
     },
     demoTitle: "演示账号",
     demoLead: "三种角色对应三种不同界面，密码相同。",
+    demoFill: "演示用・一键填入",
     demoAdmin: "管理员（SK TES 日本）",
     demoSeller: "出品方（SK TES 各国据点）",
     demoBidder: "投标方（海外买家）",
