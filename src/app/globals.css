@@ -44,6 +44,8 @@
   --vermilion: #d42b2b;
   --indigo: #163a6b;
   --washi: #fff8f2;
+  --sheen-core: rgb(201 162 74 / 0.6);
+  --sheen-soft: rgb(22 58 107 / 0.18);
   --indigo-ink: var(--indigo);
   --vermilion-ink: var(--vermilion);
   --paper-texture: url("/images/asanoha-light.png");
@@ -87,6 +89,8 @@
     --brand-200: #21406a;
     --brand-700: #9cc6ff;
     --brand-800: #c2ddff;
+    --sheen-core: rgb(255 246 214 / 0.6);
+    --sheen-soft: rgb(255 246 214 / 0.14);
     --indigo-ink: #b9d3f5;
     --vermilion-ink: #ff8a8a;
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
@@ -127,6 +131,8 @@
   --brand-200: #21406a;
   --brand-700: #9cc6ff;
   --brand-800: #c2ddff;
+  --sheen-core: rgb(255 246 214 / 0.6);
+  --sheen-soft: rgb(255 246 214 / 0.14);
   --indigo-ink: #b9d3f5;
   --vermilion-ink: #ff8a8a;
 }
@@ -654,31 +660,12 @@ a:hover .logo-mon,
   animation-iteration-count: infinite;
 }
 
-.click-ripple {
-  position: fixed;
-  z-index: 90;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  border-radius: 999px;
-  border: 2px solid rgb(212 43 43 / 0.55);
-  pointer-events: none;
-  animation: ripple-out 0.7s ease-out forwards;
-}
-
 @keyframes sakura-fall {
   0% {
     transform: translate3d(0, -20px, 0) rotate(0deg);
   }
   100% {
     transform: translate3d(40px, 110vh, 0) rotate(360deg);
-  }
-}
-
-@keyframes ripple-out {
-  to {
-    transform: scale(18);
-    opacity: 0;
   }
 }
 
@@ -896,16 +883,47 @@ a:hover .logo-mon,
   animation-iteration-count: infinite;
 }
 
-.click-ink {
+.click-sheen {
   position: fixed;
-  z-index: 89;
-  width: 28px;
-  height: 28px;
-  margin: -14px 0 0 -14px;
-  border-radius: 42% 58% 50% 50%;
-  background: radial-gradient(circle, rgb(22 58 107 / 0.28), transparent 70%);
+  z-index: 90;
+  overflow: hidden;
   pointer-events: none;
-  animation: ink-out 0.8s ease-out forwards;
+  mix-blend-mode: var(--glow-blend, multiply);
+}
+
+.click-sheen i {
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: 0;
+  width: 50%;
+  will-change: transform;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--sheen-soft),
+    var(--sheen-core),
+    var(--sheen-soft),
+    transparent
+  );
+  animation: sheen-pass 0.62s linear forwards;
+}
+
+@keyframes sheen-pass {
+  from {
+    transform: translate3d(-230%, 0, 0) skewX(-16deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(250%, 0, 0) skewX(-16deg);
+    opacity: 0;
+  }
 }
 
 .lantern-float {
@@ -1016,13 +1034,6 @@ html[data-fx="on"] .reveal.is-in {
   }
 }
 
-@keyframes ink-out {
-  to {
-    transform: scale(8) rotate(24deg);
-    opacity: 0;
-  }
-}
-
 @keyframes lantern-bob {
   0%,
   100% {
@@ -1050,13 +1061,14 @@ html[data-fx="on"] .reveal.is-in {
   .kinpaku,
   .kiku,
   .wave-band,
-  .click-ripple,
-  .click-ink,
   .noren-hang span,
   .crane,
   .lantern-float,
   .hanko.stamp-in {
     animation: none !important;
+  }
+  .click-sheen {
+    display: none;
   }
   .card:hover,
   .fx:hover,
