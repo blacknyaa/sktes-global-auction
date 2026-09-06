@@ -21,28 +21,31 @@ const WORKSPACE = [
 export function AmbientFX() {
   const pathname = usePathname();
   const workspace = WORKSPACE.some(
-    (p) => pathname === p || pathname.startsWith(`src/components/visual/AmbientFX.tsx/`)
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target?.closest("a, button, .btn, .card, .badge, summary, .fx, .tilt, [role='button']")) {
-        return;
-      }
-      const ripple = document.createElement("span");
-      ripple.className = "click-ripple";
-      ripple.style.left = `${e.clientX}px`;
-      ripple.style.top = `${e.clientY}px`;
-      const ink = document.createElement("span");
-      ink.className = "click-ink";
-      ink.style.left = `${e.clientX}px`;
-      ink.style.top = `${e.clientY}px`;
-      document.body.append(ripple, ink);
-      window.setTimeout(() => {
-        ripple.remove();
-        ink.remove();
-      }, 800);
+      const hit = (e.target as HTMLElement | null)?.closest<HTMLElement>(
+        "a, button, .btn, .card, .badge, summary, .fx, .tilt, [role='button']"
+      );
+      if (!hit) return;
+
+      const box = hit.getBoundingClientRect();
+      if (box.width < 8 || box.height < 8) return;
+
+      // A pane of light laid over what was pressed, cut to the same outline,
+      // so the glint looks like it travels through the thing itself.
+      const sheen = document.createElement("span");
+      sheen.className = "click-sheen";
+      sheen.style.left = `${box.left}px`;
+      sheen.style.top = `${box.top}px`;
+      sheen.style.width = `${box.width}px`;
+      sheen.style.height = `${box.height}px`;
+      sheen.style.borderRadius = getComputedStyle(hit).borderRadius;
+      sheen.append(document.createElement("i"));
+      document.body.append(sheen);
+      window.setTimeout(() => sheen.remove(), 720);
     };
 
     const onMove = (e: MouseEvent) => {
