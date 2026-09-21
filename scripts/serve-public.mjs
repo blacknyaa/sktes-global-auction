@@ -41,9 +41,9 @@ function publishUrl(url) {
       `SK TES Global Auction - 公開URL\n` +
       `発行時刻: ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}\n\n` +
       `ログイン:\n` +
-      `  admin@sktes-demo.com   管理者\n` +
-      `  seller@sktes-demo.com  出品者\n` +
-      `  buyer@sktes-demo.com   応札者\n` +
+      `  admin    管理者\n` +
+      `  seller   出品者\n` +
+      `  buyer    応札者\n` +
       `  パスワードは共通で Demo!2026\n\n` +
       `このURLはトンネルが張り直されると変わります。\n` +
       `常に最新の値がこのファイルに書かれています。\n`

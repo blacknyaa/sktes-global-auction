@@ -90,7 +90,7 @@ const ctx = async () => {
 
 async function login(page, email, password = "Demo!2026") {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="loginId"]', email);
   await page.fill('input[name="password"]', password);
   await Promise.all([
     page.waitForURL(/\/(dashboard|login\/mfa)/, { timeout: 30000 }),
@@ -154,6 +154,7 @@ if (!process.argv.includes("--no-seed")) {
 
 const stamp = Date.now().toString().slice(-7);
 const newBuyerEmail = `flowtest${stamp}@buyer-demo.com`;
+const newBuyerId = `flowtest${stamp}`;
 let newCompanyUrl = null;
 
 try {
@@ -169,6 +170,7 @@ try {
     await page.fill('input[name="contactName"]', "Test Buyer");
     await page.fill('input[name="contactPhone"]', "+65-6000-1234");
     await page.fill('input[name="contactEmail"]', newBuyerEmail);
+    await page.fill('input[name="loginId"]', newBuyerId);
     await page.fill('input[name="password"]', "FlowTest2026");
     await page.fill('input[name="hqAddress"]', "1 Test Road, Singapore");
     await page.locator('input[name="hasImportLicense"][value="yes"]').check();
@@ -194,7 +196,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await login(page, newBuyerEmail, "FlowTest2026");
+    await login(page, newBuyerId, "FlowTest2026");
     await page.goto(`${BASE}/lots?status=OPEN`, { waitUntil: "networkidle" });
     const link = page.locator('a[href^="/lots/"]').first();
     const href = await link.getAttribute("href");
@@ -211,7 +213,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await login(page, "admin@sktes-demo.com");
+    await login(page, "admin");
 
     await page.goto(`${BASE}/admin/members?status=PENDING`, { waitUntil: "networkidle" });
     const row = page.locator(`table tbody tr:has-text("${stamp}") a`).first();
@@ -282,7 +284,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await login(page, newBuyerEmail, "FlowTest2026");
+    await login(page, newBuyerId, "FlowTest2026");
     await page.goto(`${BASE}/lots?status=OPEN&sort=bids`, { waitUntil: "networkidle" });
     bidLotHref = await page.locator('a[href^="/lots/"]').first().getAttribute("href");
     await page.goto(BASE + bidLotHref, { waitUntil: "networkidle" });
@@ -336,7 +338,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await login(page, "admin@sktes-demo.com");
+    await login(page, "admin");
 
     // Find a closed, unopened lot that has at least two bids, so the
     // runner-up path can be exercised.
@@ -429,7 +431,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await login(page, newBuyerEmail, "FlowTest2026");
+    await login(page, newBuyerId, "FlowTest2026");
     await page.goto(`${BASE}/settings/security`, { waitUntil: "networkidle" });
 
     if (!(await page.locator("[data-testid=mfa-secret]").count())) {
@@ -468,7 +470,7 @@ try {
 
       await logout(page);
       await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-      await page.fill('input[name="email"]', newBuyerEmail);
+      await page.fill('input[name="loginId"]', newBuyerId);
       await page.fill('input[name="password"]', "FlowTest2026");
       await Promise.all([
         page.waitForURL(/\/login\/mfa/, { timeout: 30000 }),
@@ -502,7 +504,7 @@ try {
     const page = await c.newPage();
     for (let i = 0; i < 5; i++) {
       await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-      await page.fill('input[name="email"]', "buyer1@buyer-demo.com");
+      await page.fill('input[name="loginId"]', "buyer1");
       await page.fill('input[name="password"]', "wrong-password");
       await page.click('button[type="submit"]');
       await settle(page, 15000);
@@ -543,7 +545,7 @@ try {
       log("パスワードを再設定できる", (await page.locator("text=パスワードを変更しました").count()) > 0);
 
       await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-      await page.fill('input[name="email"]', "buyer1@buyer-demo.com");
+      await page.fill('input[name="loginId"]', "buyer1");
       await page.fill('input[name="password"]', "Relocked2026");
       await Promise.all([
         page.waitForURL(/\/dashboard/, { timeout: 30000 }),
@@ -565,7 +567,7 @@ try {
     });
     const page = await c.newPage();
     await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-    await page.fill('input[name="email"]', "buyer@sktes-demo.com");
+    await page.fill('input[name="loginId"]', "buyer");
     await page.fill('input[name="password"]', "Demo!2026");
     await Promise.all([
       page.waitForURL(/\/dashboard/, { timeout: 30000 }),
@@ -581,7 +583,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await login(page, "buyer@sktes-demo.com");
+    await login(page, "buyer");
     for (const url of ["/admin/members", "/admin/audit", "/admin/fraud", "/listings", "/listings/new"]) {
       await page.goto(BASE + url, { waitUntil: "networkidle" });
       log(`バイヤーは ${url} に入れない`, page.url().includes("/denied"), page.url().replace(BASE, ""));

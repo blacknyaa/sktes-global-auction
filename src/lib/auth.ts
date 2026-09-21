@@ -128,6 +128,7 @@ export async function destroySession(): Promise<void> {
 export type SessionUser = {
   id: string;
   email: string;
+  loginId: string | null;
   name: string;
   role: Role;
   locale: string;
@@ -178,6 +179,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   return {
     id: u.id,
     email: u.email,
+    loginId: u.loginId,
     name: u.name,
     role: u.role as Role,
     locale: u.locale,
@@ -234,16 +236,23 @@ export type LoginOutcome =
   | { ok: true; userId: string; mfaRequired: boolean }
   | { ok: false; reason: "INVALID" | "LOCKED" | "DISABLED"; lockedUntil?: Date };
 
+/** Lower-case letters, digits, dot, hyphen, underscore; 3 to 32 characters. */
+export const LOGIN_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{2,31}$/;
+
+export function normalizeLoginId(raw: string): string {
+  return raw.trim().toLowerCase();
+}
+
 export async function attemptLogin(
-  email: string,
+  loginId: string,
   password: string
 ): Promise<LoginOutcome> {
   const user = await prisma.user.findUnique({
-    where: { email: email.trim().toLowerCase() },
+    where: { loginId: normalizeLoginId(loginId) },
   });
 
-  // Same generic answer whether the address exists or not, so the form
-  // cannot be used to discover which addresses are registered.
+  // Same generic answer whether the ID exists or not, so the form cannot be
+  // used to discover which IDs are registered.
   if (!user) return { ok: false, reason: "INVALID" };
 
   if (user.lockedUntil && user.lockedUntil > new Date()) {

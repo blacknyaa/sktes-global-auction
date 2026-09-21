@@ -42,7 +42,7 @@ async function newCtx(locale = "ja", viewport = { width: 1440, height: 900 }) {
 
 async function signIn(page, email, password = "Demo!2026") {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="loginId"]', email);
   await page.fill('input[name="password"]', password);
   await Promise.all([
     page.waitForURL(/\/(dashboard|login\/mfa)/, { timeout: 40000 }),
@@ -79,7 +79,7 @@ const ADMIN_ROUTES = [
     problems.push(`${page.url()} :: ${t.slice(0, 160)}`);
   });
 
-  await signIn(page, "admin@sktes-demo.com");
+  await signIn(page, "admin");
   for (const r of [...PUBLIC_ROUTES, ...ADMIN_ROUTES]) {
     await page.goto(BASE + r, { waitUntil: "networkidle" }).catch(() => {});
   }
@@ -111,7 +111,7 @@ const ADMIN_ROUTES = [
   ]) {
     const c = await newCtx(locale);
     const page = await c.newPage();
-    await signIn(page, "admin@sktes-demo.com");
+    await signIn(page, "admin");
 
     const untranslated = [];
     for (const r of ADMIN_ROUTES) {
@@ -158,7 +158,7 @@ const ADMIN_ROUTES = [
 {
   const c = await newCtx();
   const page = await c.newPage();
-  await signIn(page, "admin@sktes-demo.com");
+  await signIn(page, "admin");
 
   const seen = new Set();
   const broken = [];
@@ -197,7 +197,7 @@ const ADMIN_ROUTES = [
   for (const vp of viewports) {
     const c = await newCtx("ja", { width: vp.width, height: vp.height });
     const page = await c.newPage();
-    await signIn(page, "admin@sktes-demo.com");
+    await signIn(page, "admin");
 
     const overflowing = [];
     for (const r of ["/dashboard", "/lots", "/admin/members", "/reports", "/admin/audit"]) {
@@ -223,7 +223,7 @@ const ADMIN_ROUTES = [
 {
   const c = await newCtx();
   const page = await c.newPage();
-  await signIn(page, "admin@sktes-demo.com");
+  await signIn(page, "admin");
   await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
   await page.evaluate(() => {
     document.documentElement.setAttribute("data-theme", "dark");
@@ -266,7 +266,7 @@ const ADMIN_ROUTES = [
 {
   const c = await newCtx();
   const page = await c.newPage();
-  await signIn(page, "admin@sktes-demo.com");
+  await signIn(page, "admin");
 
   const issues = [];
   for (const r of [...PUBLIC_ROUTES, ...ADMIN_ROUTES]) {
@@ -315,7 +315,7 @@ const ADMIN_ROUTES = [
 {
   const c = await newCtx();
   const page = await c.newPage();
-  await signIn(page, "admin@sktes-demo.com");
+  await signIn(page, "admin");
 
   const slow = [];
   const timings = [];
@@ -347,7 +347,7 @@ const ADMIN_ROUTES = [
   const notFound = await page.request.get(`${BASE}/this-page-does-not-exist`);
   log("存在しないURLは404を返す", notFound.status() === 404, `${notFound.status()}`);
 
-  await signIn(page, "buyer@sktes-demo.com");
+  await signIn(page, "buyer");
   await page.goto(`${BASE}/admin/audit`, { waitUntil: "networkidle" });
   const denied =
     page.url().includes("/denied") && (await page.locator("h1").count()) > 0;

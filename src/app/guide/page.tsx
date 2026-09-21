@@ -23,7 +23,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
     sections: [
       {
         role: "応札者（海外バイヤー）",
-        badge: "buyer@sktes-demo.com",
+        badge: "ID: buyer",
         steps: [
           { title: "出品を探す", body: "出品一覧から、カテゴリー・コンディション・国で絞り込めます。ここまでは普通の一覧画面です。", href: "/lots", linkLabel: "出品一覧を開く" },
           { title: "ロットの中身で絞り込む", body: "「ロットの中身で絞り込む」を開いて、メーカーに Dell、RAM下限に 16 と入れてみてください。ロットに含まれる個体のスペックで横断検索します。一致した明細の台数もカードに出ます。", href: "/lots?maker=Dell&minRam=16", linkLabel: "Dell・16GB以上で検索" },
@@ -34,7 +34,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
       },
       {
         role: "出品者（SK TES 各国拠点）",
-        badge: "seller@sktes-demo.com",
+        badge: "ID: seller",
         steps: [
           { title: "Excelから出品する", body: "新規出品の2ステップ目でExcelを取り込みます。列の順番は自由で、日本語・英語どちらのヘッダーでも読み取ります。読めなかった行はプレビューに一覧表示され、黙って捨てられることはありません。", href: "/listings/new", linkLabel: "新規出品" },
           { title: "入札条件を決める", body: "封印入札（フェーズ1）とオークション（フェーズ2）を切り替えられます。締切間際の入札で自動延長する設定もここです。日時はご自身のタイムゾーンで入力し、内部では協定世界時に直します。" },
@@ -44,7 +44,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
       },
       {
         role: "管理者（SK TES 日本）",
-        badge: "admin@sktes-demo.com",
+        badge: "ID: admin",
         steps: [
           { title: "会員を審査する", body: "仮登録 → 書類審査 → 本登録の流れです。書類を1件ずつ承認・差し戻しでき、入札上限つきの仮承認もできます。", href: "/admin/members", linkLabel: "会員管理" },
           { title: "ダッシュボードを見る", body: "国別の出品数、ステータス分布、月別の落札金額を表示します。", href: "/dashboard", linkLabel: "ダッシュボード" },
@@ -65,7 +65,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
     sections: [
       {
         role: "Bidder (overseas buyer)",
-        badge: "buyer@sktes-demo.com",
+        badge: "ID: buyer",
         steps: [
           { title: "Find a lot", body: "Filter the lot list by category, condition and country.", href: "/lots", linkLabel: "Open lot list" },
           { title: "Search inside the lot", body: "Open the spec filter and try maker Dell with a 16GB RAM floor. The search runs across the contents of every lot, and each card shows how many matching units it holds.", href: "/lots?maker=Dell&minRam=16", linkLabel: "Search Dell, 16GB+" },
@@ -76,7 +76,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
       },
       {
         role: "Seller (SK TES country site)",
-        badge: "seller@sktes-demo.com",
+        badge: "ID: seller",
         steps: [
           { title: "List from Excel", body: "Step two of the new-listing wizard imports a workbook. Column order is free, headers may be Japanese or English, and any row that cannot be read is listed rather than dropped.", href: "/listings/new", linkLabel: "New listing" },
           { title: "Set the terms", body: "Switch between sealed bid (phase 1) and open auction (phase 2), and turn on soft close. Times are entered in your own zone and stored in UTC." },
@@ -86,7 +86,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
       },
       {
         role: "Administrator (SK TES Japan)",
-        badge: "admin@sktes-demo.com",
+        badge: "ID: admin",
         steps: [
           { title: "Review members", body: "Provisional entry, document review, then full approval - or conditional approval with a bid cap.", href: "/admin/members", linkLabel: "Members" },
           { title: "Read the dashboard", body: "Lots by country, status distribution and awarded value by month.", href: "/dashboard", linkLabel: "Dashboard" },
@@ -107,7 +107,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
     sections: [
       {
         role: "投标方（海外买家）",
-        badge: "buyer@sktes-demo.com",
+        badge: "ID: buyer",
         steps: [
           { title: "查找标的", body: "可按类别、成色与国家筛选标的一览。", href: "/lots", linkLabel: "打开标的一览" },
           { title: "按标的内容检索", body: "展开「按标的内容筛选」，尝试厂商填 Dell、RAM下限填 16。系统会跨标的检索其中单品的规格，并在卡片上显示匹配数量。", href: "/lots?maker=Dell&minRam=16", linkLabel: "检索 Dell 16GB 以上" },
@@ -118,7 +118,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
       },
       {
         role: "出品方（SK TES 各国据点）",
-        badge: "seller@sktes-demo.com",
+        badge: "ID: seller",
         steps: [
           { title: "用Excel上架", body: "新增上架第二步导入工作簿。列顺序自由，表头支持中日英，无法读取的行会列出而非丢弃。", href: "/listings/new", linkLabel: "新增上架" },
           { title: "设定投标条件", body: "可切换密封投标（第一阶段）与公开竞拍（第二阶段），并开启自动延时。时间按您所在时区输入，内部以协定世界时保存。" },
@@ -128,7 +128,7 @@ const CONTENT: Record<Locale, { lead: string; sections: Section[]; notes: string
       },
       {
         role: "管理员（SK TES 日本）",
-        badge: "admin@sktes-demo.com",
+        badge: "ID: admin",
         steps: [
           { title: "审核会员", body: "临时注册 → 资料审核 → 正式注册，也可设投标上限临时批准。", href: "/admin/members", linkLabel: "会员管理" },
           { title: "查看仪表板", body: "按国家的上架数、状态分布与按月成交金额。", href: "/dashboard", linkLabel: "仪表板" },

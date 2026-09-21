@@ -42,7 +42,7 @@ async function session(email, password = "Demo!2026") {
   await ctx.addCookies([{ name: "sktes_locale", value: "ja", url: BASE }]);
   const page = await ctx.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="loginId"]', email);
   await page.fill('input[name="password"]', password);
   await Promise.all([
     page.waitForURL(/\/(dashboard|login\/mfa)/, { timeout: 60000 }),
@@ -71,7 +71,7 @@ async function bidCount(page, href) {
 try {
   // =============================== 1. many bidders, one lot, one instant
   {
-    const admin = await session("admin@sktes-demo.com");
+    const admin = await session("admin");
     await admin.page.goto(`${BASE}/lots?status=OPEN&sort=closing`, {
       waitUntil: "networkidle",
     });
@@ -101,7 +101,7 @@ try {
       });
 
     // eight different buyers, opened in parallel, submitting together
-    const emails = Array.from({ length: 8 }, (_, i) => `buyer${i + 10}@buyer-demo.com`);
+    const emails = Array.from({ length: 8 }, (_, i) => `buyer${i + 10}`);
     const sessions = [];
     for (const e of emails) {
       try {
@@ -261,8 +261,8 @@ try {
 
   // ============================== 3. two administrators open one lot
   {
-    const a = await session("admin@sktes-demo.com");
-    const b = await session("admin2@sktes-demo.com");
+    const a = await session("admin");
+    const b = await session("admin2");
 
     await a.page.goto(`${BASE}/lots?status=CLOSED`, { waitUntil: "networkidle" });
     const hrefs = await a.page
@@ -341,7 +341,7 @@ try {
 
   // ===================================== 5. load: many requests at once
   {
-    const { ctx, page } = await session("admin@sktes-demo.com");
+    const { ctx, page } = await session("admin");
     const paths = ["/dashboard", "/lots", "/contracts", "/admin/members", "/reports"];
     const rounds = 6;
 

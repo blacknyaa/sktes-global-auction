@@ -47,7 +47,7 @@ export default async function LoginPage({
 
       <LoginForm
         labels={{
-          email: dict.auth.email,
+          loginId: dict.auth.loginId,
           password: dict.auth.password,
           signIn: dict.auth.signIn,
           invalid: dict.auth.invalidCredentials,
@@ -56,9 +56,9 @@ export default async function LoginPage({
           demoFill: dict.home.demoFill,
         }}
         presets={[
-          { label: dict.role.ADMIN, email: "admin@sktes-demo.com" },
-          { label: dict.role.SELLER, email: "seller@sktes-demo.com" },
-          { label: dict.role.BIDDER, email: "buyer@sktes-demo.com" },
+          { label: dict.role.ADMIN, loginId: "admin" },
+          { label: dict.role.SELLER, loginId: "seller" },
+          { label: dict.role.BIDDER, loginId: "buyer" },
         ]}
       />
     </AuthShell>

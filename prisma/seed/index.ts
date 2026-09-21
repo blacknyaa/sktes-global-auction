@@ -136,6 +136,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       email: "admin@sktes-demo.com",
+      loginId: "admin",
       passwordHash,
       name: "管理者 太郎",
       phone: "+81-3-1234-5678",
@@ -149,6 +150,7 @@ async function main() {
   const admin2 = await prisma.user.create({
     data: {
       email: "admin2@sktes-demo.com",
+      loginId: "admin2",
       passwordHash,
       name: "運用 花子",
       phone: "+81-3-1234-5679",
@@ -189,6 +191,7 @@ async function main() {
       data: {
         companyId: company.id,
         email: `seller.${c.code.toLowerCase()}@sktes-demo.com`,
+        loginId: `seller-${c.code.toLowerCase()}`,
         passwordHash,
         name: pick(CONTACT_NAMES),
         role: "SELLER",
@@ -205,6 +208,7 @@ async function main() {
     data: {
       companyId: sellerCompanies.find((s) => s.code === "JP")!.id,
       email: "seller@sktes-demo.com",
+      loginId: "seller",
       passwordHash,
       name: "出品 次郎",
       phone: "+81-43-000-0000",
@@ -359,6 +363,7 @@ async function main() {
       data: {
         companyId: company.id,
         email: `buyer${i + 1}@buyer-demo.com`,
+        loginId: `buyer${i + 1}`,
         passwordHash,
         name: company.contactName,
         phone: company.contactPhone,
@@ -386,6 +391,7 @@ async function main() {
     data: {
       companyId: demoBuyer.id,
       email: "buyer@sktes-demo.com",
+      loginId: "buyer",
       passwordHash,
       name: "Alex Tan",
       phone: "+65-6000-0000",
@@ -998,9 +1004,9 @@ async function main() {
   console.log("\nSeed complete:");
   console.table(counts);
   console.log(`\nDemo password for every account: ${DEMO_PASSWORD}`);
-  console.log("  admin@sktes-demo.com   (administrator)");
-  console.log("  seller@sktes-demo.com  (SK TES Japan)");
-  console.log("  buyer@sktes-demo.com   (overseas buyer)\n");
+  console.log("  admin    (administrator)");
+  console.log("  seller   (SK TES Japan)");
+  console.log("  buyer    (overseas buyer)\n");
   void commit; // keep the helper imported for downstream stages
   return counts;
 }

@@ -102,6 +102,9 @@ model User {
   companyId        String?
   company          Company?  @relation(fields: [companyId], references: [id])
   email            String    @unique
+  // What a person types to sign in. Nullable only so the column can be added
+  // to a table that already has rows; the code always fills it in.
+  loginId          String?   @unique
   passwordHash     String
   name             String
   phone            String?
