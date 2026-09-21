@@ -130,7 +130,7 @@ export async function ConsoleShell({
 
             <div className="ml-auto flex items-center gap-2">
               <span className="hidden text-xs text-muted sm:block">
-                {user.email}
+                {user.loginId ?? user.email}
               </span>
               <ThemeToggle />
               <LocaleSwitcher current={locale} />

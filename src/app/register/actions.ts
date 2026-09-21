@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { LOGIN_ID_PATTERN, hashPassword, normalizeLoginId } from "@/lib/auth";
+import { getDictionary } from "@/i18n";
 import { writeAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import {
@@ -27,6 +28,7 @@ const schema = z.object({
   branchAddress: z.string().max(240).optional(),
   hasImportLicense: z.enum(["yes", "no"]),
   antiqueLicenseNo: z.string().max(60).optional(),
+  loginId: z.string().regex(LOGIN_ID_PATTERN),
   password: z.string().min(8),
 });
 
@@ -53,8 +55,14 @@ export async function registerAction(
     branchAddress: String(formData.get("branchAddress") ?? "").trim(),
     hasImportLicense: String(formData.get("hasImportLicense") ?? "no"),
     antiqueLicenseNo: String(formData.get("antiqueLicenseNo") ?? "").trim(),
+    loginId: normalizeLoginId(String(formData.get("loginId") ?? "")),
     password: String(formData.get("password") ?? ""),
   };
+
+  const dict = await getDictionary();
+  if (!LOGIN_ID_PATTERN.test(raw.loginId)) {
+    return { error: dict.member.loginIdInvalid, field: "loginId" };
+  }
 
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
@@ -77,6 +85,12 @@ export async function registerAction(
   });
   if (exists) {
     return { error: "このメールアドレスはすでに登録されています。" };
+  }
+  const idTaken = await prisma.user.findUnique({
+    where: { loginId: parsed.data.loginId },
+  });
+  if (idTaken) {
+    return { error: dict.member.loginIdTaken, field: "loginId" };
   }
 
   const country = await prisma.country.findUnique({
@@ -155,6 +169,7 @@ export async function registerAction(
     data: {
       companyId: company.id,
       email: parsed.data.contactEmail,
+      loginId: parsed.data.loginId,
       passwordHash: await hashPassword(parsed.data.password),
       name: parsed.data.contactName,
       phone: parsed.data.contactPhone,

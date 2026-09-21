@@ -53,6 +53,8 @@ export default async function RegisterPage() {
           licenseNo: dict.member.licenseNo,
           antiqueLicense: dict.member.antiqueLicense,
           antiqueHint: dict.member.antiqueHint,
+          loginId: dict.member.loginId,
+          loginIdHint: dict.member.loginIdHint,
           password: dict.member.password,
           passwordPolicy: dict.auth.passwordPolicy,
           docsLead: dict.member.docsLead,
