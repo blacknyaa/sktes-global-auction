@@ -6,7 +6,7 @@ import { FormError } from "@/components/form";
 import { SubmitButton } from "@/components/SubmitButton";
 
 type Labels = {
-  email: string;
+  loginId: string;
   password: string;
   signIn: string;
   invalid: string;
@@ -26,7 +26,7 @@ export function LoginForm({
   presets,
 }: {
   labels: Labels;
-  presets: { label: string; email: string }[];
+  presets: { label: string; loginId: string }[];
 }) {
   const [state, action] = useActionState<LoginState, FormData>(loginAction, {});
 
@@ -44,17 +44,19 @@ export function LoginForm({
       {message && <FormError>{message}</FormError>}
 
       <div>
-        <label className="label" htmlFor="email">
-          {labels.email}
+        <label className="label" htmlFor="loginId">
+          {labels.loginId}
         </label>
         <input
-          id="email"
-          name="email"
-          type="email"
+          id="loginId"
+          name="loginId"
+          type="text"
           required
           autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
           className="input"
-          placeholder="you@example.com"
+          placeholder="admin"
         />
       </div>
 
@@ -83,14 +85,14 @@ export function LoginForm({
           <div className="flex flex-wrap gap-1.5">
             {presets.map((p) => (
               <button
-                key={p.email}
+                key={p.loginId}
                 type="button"
                 className="btn btn-subtle px-2.5 py-1 text-xs"
                 onClick={() => {
                   const form = document.querySelector<HTMLFormElement>("form");
                   if (!form) return;
-                  (form.elements.namedItem("email") as HTMLInputElement).value =
-                    p.email;
+                  (form.elements.namedItem("loginId") as HTMLInputElement).value =
+                    p.loginId;
                   (
                     form.elements.namedItem("password") as HTMLInputElement
                   ).value = "Demo!2026";

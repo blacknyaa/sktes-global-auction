@@ -19,7 +19,7 @@ ctx.on("page", (p) => p.on("dialog", (d) => d.accept()));
 const page = await ctx.newPage();
 
 await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-await page.fill('input[name="email"]', "admin@sktes-demo.com");
+await page.fill('input[name="loginId"]', "admin");
 await page.fill('input[name="password"]', "Demo!2026");
 await Promise.all([page.waitForURL(/dashboard/), page.click('button[type="submit"]')]);
 

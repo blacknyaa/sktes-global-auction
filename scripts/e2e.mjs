@@ -58,7 +58,7 @@ async function act(page, locator) {
 
 async function login(page, email, password = "Demo!2026") {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="loginId"]', email);
   await page.fill('input[name="password"]', password);
   await Promise.all([
     page.waitForURL(/\/(dashboard|login\/mfa)/, { timeout: 30000 }),
@@ -154,7 +154,7 @@ try {
 
   // ----------------------------------------------------------------- admin
   if (!only || only === "admin") {
-    await login(page, "admin@sktes-demo.com");
+    await login(page, "admin");
     log("admin signed in", page.url().includes("/dashboard"));
     await page.waitForTimeout(800);
     await shot(page, "03-admin-dashboard");
@@ -255,7 +255,7 @@ try {
 
   // ---------------------------------------------------------------- bidder
   if (!only || only === "bidder") {
-    await login(page, "buyer@sktes-demo.com");
+    await login(page, "buyer");
     log("bidder signed in", page.url().includes("/dashboard"));
     await page.waitForTimeout(600);
     await shot(page, "07-bidder-dashboard");
@@ -315,7 +315,7 @@ try {
 
   // ---------------------------------------------------------------- seller
   if (!only || only === "seller") {
-    await login(page, "seller@sktes-demo.com");
+    await login(page, "seller");
     log("seller signed in", page.url().includes("/dashboard"));
     await page.waitForTimeout(600);
     await shot(page, "19-seller-dashboard");

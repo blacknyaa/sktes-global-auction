@@ -578,13 +578,13 @@ export default async function HomePage() {
               </div>
               <div className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                 {[
-                  { role: dict.home.demoAdmin, email: "admin@sktes-demo.com", tone: "brand" as const },
-                  { role: dict.home.demoSeller, email: "seller@sktes-demo.com", tone: "info" as const },
-                  { role: dict.home.demoBidder, email: "buyer@sktes-demo.com", tone: "success" as const },
+                  { role: dict.home.demoAdmin, loginId: "admin", tone: "brand" as const },
+                  { role: dict.home.demoSeller, loginId: "seller", tone: "info" as const },
+                  { role: dict.home.demoBidder, loginId: "buyer", tone: "success" as const },
                 ].map((a) => (
-                  <div key={a.email} className="p-6">
+                  <div key={a.loginId} className="p-6">
                     <Badge tone={a.tone}>{a.role}</Badge>
-                    <p className="mt-3 select-all font-mono text-sm font-semibold">{a.email}</p>
+                    <p className="mt-3 select-all font-mono text-sm font-semibold">{a.loginId}</p>
                     <p className="mt-1 text-xs text-muted">
                       {dict.home.demoPassword}:{" "}
                       <span className="select-all font-mono font-semibold">Demo!2026</span>

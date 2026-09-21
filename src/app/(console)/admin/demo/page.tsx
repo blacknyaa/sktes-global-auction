@@ -86,22 +86,22 @@ export default async function DemoAdminPage() {
           <h2 className="text-base font-bold text-ink">デモアカウント</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {[
-              { role: dict.home.demoAdmin, email: "admin@sktes-demo.com" },
-              { role: dict.home.demoSeller, email: "seller@sktes-demo.com" },
-              { role: dict.home.demoBidder, email: "buyer@sktes-demo.com" },
+              { role: dict.home.demoAdmin, loginId: "admin" },
+              { role: dict.home.demoSeller, loginId: "seller" },
+              { role: dict.home.demoBidder, loginId: "buyer" },
             ].map((a) => (
-              <div key={a.email} className="rounded-lg bg-surface-2 p-3">
+              <div key={a.loginId} className="rounded-lg bg-surface-2 p-3">
                 <p className="text-xs text-muted">{a.role}</p>
                 <p className="select-all font-mono text-sm font-semibold text-ink">
-                  {a.email}
+                  {a.loginId}
                 </p>
               </div>
             ))}
           </div>
           <p className="mt-3 text-xs text-muted">
             パスワードは共通で <span className="select-all font-mono font-semibold">Demo!2026</span> です。
-            バイヤー各社のアカウントは buyer1@buyer-demo.com 〜 buyer55@buyer-demo.com、
-            出品拠点は seller.jp@sktes-demo.com のように国コードで並んでいます。
+            バイヤー各社のログインIDは buyer1 〜 buyer55、
+            出品拠点は seller-jp のように国コードつきで並んでいます。
           </p>
         </Card>
       </div>

@@ -27,6 +27,8 @@ export type WizardLabels = {
   licenseNo: string;
   antiqueLicense: string;
   antiqueHint: string;
+  loginId: string;
+  loginIdHint: string;
   password: string;
   passwordPolicy: string;
   docsLead: string;
@@ -147,9 +149,23 @@ export function RegisterWizard({
           </Field>
         </div>
 
+        <Field label={labels.contactEmail} required>
+          <input name="contactEmail" type="email" required className="input" />
+        </Field>
+
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={labels.contactEmail} required>
-            <input name="contactEmail" type="email" required className="input" />
+          <Field label={labels.loginId} required hint={labels.loginIdHint}>
+            <input
+              name="loginId"
+              required
+              minLength={3}
+              maxLength={32}
+              pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,31}"
+              className="input"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
           </Field>
           <Field label={labels.password} required hint={labels.passwordPolicy}>
             <input

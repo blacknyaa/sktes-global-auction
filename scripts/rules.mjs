@@ -57,7 +57,7 @@ const ctx = async () => {
 
 async function signIn(page, email, password = "Demo!2026") {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="loginId"]', email);
   await page.fill('input[name="password"]', password);
   await Promise.all([
     page.waitForURL(/\/(dashboard|login\/mfa)/, { timeout: 40000 }),
@@ -110,7 +110,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "seller@sktes-demo.com");
+    await signIn(page, "seller");
     const { file, units, lines } = await manifestFile();
 
     await page.goto(`${BASE}/listings/new`, { waitUntil: "networkidle" });
@@ -190,7 +190,7 @@ try {
   if (newLotHref) {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "buyer@sktes-demo.com");
+    await signIn(page, "buyer");
     await page.goto(BASE + newLotHref, { waitUntil: "networkidle" });
 
     const before = await page.locator("text=/自動延長/").count();
@@ -217,7 +217,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "admin@sktes-demo.com");
+    await signIn(page, "admin");
     await page.goto(`${BASE}/contracts`, { waitUntil: "networkidle" });
 
     const hrefs = await page
@@ -261,7 +261,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "admin@sktes-demo.com");
+    await signIn(page, "admin");
     await page.goto(`${BASE}/contracts`, { waitUntil: "networkidle" });
     const hrefs = await page
       .locator('table tbody a[href^="/contracts/"]')
@@ -293,7 +293,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "buyer@sktes-demo.com");
+    await signIn(page, "buyer");
     await page.goto(`${BASE}/bids`, { waitUntil: "networkidle" });
     const href = await page
       .locator('a[href^="/lots/"]')
@@ -322,7 +322,7 @@ try {
   {
     const ask = await ctx();
     const p1 = await ask.newPage();
-    await signIn(p1, "buyer@sktes-demo.com");
+    await signIn(p1, "buyer");
     await p1.goto(`${BASE}/lots?status=OPEN`, { waitUntil: "networkidle" });
     const href = await p1.locator('a[href^="/lots/"]').first().getAttribute("href");
     await p1.goto(BASE + href, { waitUntil: "networkidle" });
@@ -333,7 +333,7 @@ try {
 
     const other = await ctx();
     const p2 = await other.newPage();
-    await signIn(p2, "buyer2@buyer-demo.com");
+    await signIn(p2, "buyer2");
     await p2.goto(BASE + href, { waitUntil: "networkidle" });
     const visible = (await p2.locator(`text=${stamp}`).count()) > 0;
     await shot(p2, "r07-question-shared");
@@ -345,7 +345,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "admin@sktes-demo.com");
+    await signIn(page, "admin");
     await page.goto(`${BASE}/admin/audit`, { waitUntil: "networkidle" });
     const all = await page.locator("table tbody tr").count();
 
@@ -367,7 +367,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "buyer3@buyer-demo.com");
+    await signIn(page, "buyer3");
     await page.goto(`${BASE}/settings/security`, { waitUntil: "networkidle" });
 
     await page.fill('input[name="current"]', "Demo!2026");
@@ -380,7 +380,7 @@ try {
     if (changed) {
       const c2 = await ctx();
       const p2 = await c2.newPage();
-      await signIn(p2, "buyer3@buyer-demo.com", "Changed!2026");
+      await signIn(p2, "buyer3", "Changed!2026");
       log("新しいパスワードでログインできる", p2.url().includes("/dashboard"));
       await c2.close();
     }
@@ -391,7 +391,7 @@ try {
   {
     const c = await ctx();
     const page = await c.newPage();
-    await signIn(page, "admin@sktes-demo.com");
+    await signIn(page, "admin");
     await page.goto(`${BASE}/lots`, { waitUntil: "networkidle" });
     const href = await page.locator('a[href^="/lots/"]').first().getAttribute("href");
     const lotId = href.split("/").pop();

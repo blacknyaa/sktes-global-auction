@@ -16,7 +16,7 @@ import { writeAudit } from "@/lib/audit";
 export type LoginState = { error?: string; lockedUntil?: string };
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  loginId: z.string().min(3).max(32),
   password: z.string().min(1),
 });
 
@@ -25,18 +25,18 @@ export async function loginAction(
   formData: FormData
 ): Promise<LoginState> {
   const parsed = loginSchema.safeParse({
-    email: String(formData.get("email") ?? ""),
+    loginId: String(formData.get("loginId") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
   if (!parsed.success) return { error: "INVALID" };
 
-  const outcome = await attemptLogin(parsed.data.email, parsed.data.password);
+  const outcome = await attemptLogin(parsed.data.loginId, parsed.data.password);
 
   if (!outcome.ok) {
     await writeAudit({
-      actorLabel: parsed.data.email,
+      actorLabel: parsed.data.loginId,
       action: "LOGIN_FAILED",
-      summary: `${parsed.data.email} のログインに失敗（${outcome.reason}）`,
+      summary: `${parsed.data.loginId} のログインに失敗（${outcome.reason}）`,
       detail: { reason: outcome.reason },
     });
     return {
@@ -54,9 +54,9 @@ export async function loginAction(
   const user = await prisma.user.findUnique({ where: { id: outcome.userId } });
   await writeAudit({
     actorUserId: outcome.userId,
-    actorLabel: user?.name ?? parsed.data.email,
+    actorLabel: user?.name ?? parsed.data.loginId,
     action: "LOGIN",
-    summary: `${parsed.data.email} がログインしました`,
+    summary: `${user?.loginId ?? parsed.data.loginId} がログインしました`,
   });
   redirect("/dashboard");
 }
@@ -79,7 +79,7 @@ export async function mfaAction(
       actorUserId: user.id,
       actorLabel: user.name,
       action: "LOGIN_FAILED",
-      summary: `${user.email} のMFAコードが一致しませんでした`,
+      summary: `${user.loginId ?? user.email} のMFAコードが一致しませんでした`,
     });
     return { error: "INVALID" };
   }
@@ -94,7 +94,7 @@ export async function mfaAction(
     actorUserId: user.id,
     actorLabel: user.name,
     action: "LOGIN",
-    summary: `${user.email} がMFA認証を通過してログインしました`,
+    summary: `${user.loginId ?? user.email} がMFA認証を通過してログインしました`,
   });
   redirect("/dashboard");
 }
