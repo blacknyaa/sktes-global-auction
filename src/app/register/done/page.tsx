@@ -3,11 +3,19 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/AuthShell";
 import { FormNotice } from "@/components/form";
 import { getDictionary } from "@/i18n";
+import { LOGIN_ID_PATTERN } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "仮登録を受け付けました" };
 
-export default async function RegisterDonePage() {
+export default async function RegisterDonePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ id?: string }>;
+}) {
   const dict = await getDictionary();
+  const { id } = await searchParams;
+  // Only ever echo back something shaped like an ID we would have issued.
+  const loginId = id && LOGIN_ID_PATTERN.test(id) ? id : null;
 
   const steps = [
     { key: "PENDING", done: true },
@@ -18,6 +26,20 @@ export default async function RegisterDonePage() {
   return (
     <AuthShell title={dict.member.doneTitle} lead={dict.member.doneLead}>
       <div className="space-y-5">
+        {loginId && (
+          <div className="rounded-xl border border-line bg-surface-2 px-4 py-3">
+            <p className="text-xs font-semibold text-muted">
+              {dict.member.yourLoginId}
+            </p>
+            <p className="select-all font-mono text-lg font-bold tracking-wide text-ink">
+              {loginId}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {dict.member.yourLoginIdHint}
+            </p>
+          </div>
+        )}
+
         <ol className="space-y-2">
           {steps.map((s) => (
             <li

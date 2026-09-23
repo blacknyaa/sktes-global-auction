@@ -566,6 +566,8 @@ export const en: Dictionary = {
     terms: "Terms of use",
     agreeTerms: "I accept the terms of use",
     submitApplication: "Submit application",
+    yourLoginId: "Your login ID",
+    yourLoginIdHint: "You will sign in with this from now on. Please keep a note of it.",
     doneTitle: "Your application has been received",
     doneLead: "We will review your documents and email you the outcome. Bidding is unavailable until review completes.",
     statusTitle: "Review status",

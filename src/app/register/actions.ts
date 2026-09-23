@@ -231,5 +231,5 @@ export async function registerAction(
     },
   });
 
-  redirect("/register/done");
+  redirect(`/register/done?id=${encodeURIComponent(parsed.data.loginId)}`);
 }
