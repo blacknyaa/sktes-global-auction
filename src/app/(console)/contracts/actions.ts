@@ -191,6 +191,9 @@ export async function requestShipmentAction(formData: FormData): Promise<void> {
   if (!(await assertAccess(contract, user.role, user.companyId, "SELLER"))) return;
   if (contract.shipments.length > 0) return;
 
+  const invoice = contract.invoices[0];
+  if (!invoice || invoice.status !== "PAID") return;
+
   const now = new Date();
   await prisma.shipment.create({
     data: {
