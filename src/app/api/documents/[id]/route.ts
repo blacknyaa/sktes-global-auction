@@ -48,6 +48,7 @@ export async function GET(
       "content-type": doc.mimeType,
       "content-disposition": `inline; filename="${encodeURIComponent(doc.fileName)}"`,
       "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
     },
   });
 }
