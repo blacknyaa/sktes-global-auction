@@ -65,6 +65,10 @@ export default async function LotDetailPage({
 
   const isOwner = user.companyId === lot.sellerCompanyId;
   const isSellerSide = user.role === "ADMIN" || (user.role === "SELLER" && isOwner);
+  // Drafts stay with their owner until published - same rule as the manifest
+  // download. Knowing the id must not reveal an unfinished listing.
+  if (lot.status === "DRAFT" && !isSellerSide) notFound();
+
   const closeAt = effectiveEndAt(lot);
   const isClosed = now >= closeAt;
   const opened = Boolean(lot.openedAt);
