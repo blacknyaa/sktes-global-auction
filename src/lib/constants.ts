@@ -106,6 +106,7 @@ export const AUDIT_ACTIONS = [
   "INVOICE_ISSUE",
   "PAYMENT_CONFIRM",
   "SHIPMENT_UPDATE",
+  "DOCUMENT_VIEW",
   "ADMIN_ACTION",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -37,7 +37,7 @@ export async function GET(
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.name,
-    action: "ADMIN_ACTION",
+    action: "DOCUMENT_VIEW",
     targetType: "CompanyDocument",
     targetId: doc.id,
     summary: `${doc.kind} を閲覧しました`,
