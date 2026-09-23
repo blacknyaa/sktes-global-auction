@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
-import { DEFAULT_CARD_LIMIT_CENTS, type Locale } from "@/lib/constants";
+import {
+  DEFAULT_CARD_LIMIT_CENTS,
+  PAYMENT_METHODS,
+  type Locale,
+  type PaymentMethod,
+} from "@/lib/constants";
 
 async function loadContract(contractId: string) {
   return prisma.contract.findUnique({
@@ -67,12 +72,15 @@ export async function selectPaymentMethodAction(formData: FormData): Promise<voi
   if (!contract) return;
   if (!(await assertAccess(contract, user.role, user.companyId, "BUYER"))) return;
 
+  if (!(PAYMENT_METHODS as readonly string[]).includes(method)) return;
+  const paymentMethod = method as PaymentMethod;
+
   const invoice = contract.invoices[0];
   if (!invoice || invoice.status === "PAID") return;
 
   const limit = await cardLimitCents();
   if (
-    (method === "CREDIT_CARD" || method === "PAYPAL") &&
+    (paymentMethod === "CREDIT_CARD" || paymentMethod === "PAYPAL") &&
     invoice.totalCents > limit
   ) {
     return; // the UI blocks this too; the server is the one that counts
@@ -80,7 +88,7 @@ export async function selectPaymentMethodAction(formData: FormData): Promise<voi
 
   await prisma.invoice.update({
     where: { id: invoice.id },
-    data: { paymentMethod: method },
+    data: { paymentMethod },
   });
   await prisma.contract.update({
     where: { id: contractId },
@@ -93,8 +101,8 @@ export async function selectPaymentMethodAction(formData: FormData): Promise<voi
     action: "ADMIN_ACTION",
     targetType: "Contract",
     targetId: contractId,
-    summary: `${contract.contractNo} の支払方法を ${method} に設定`,
-    detail: { method, totalCents: invoice.totalCents, limitCents: limit },
+    summary: `${contract.contractNo} の支払方法を ${paymentMethod} に設定`,
+    detail: { method: paymentMethod, totalCents: invoice.totalCents, limitCents: limit },
   });
 
   revalidatePath(`/contracts/${contractId}`);
