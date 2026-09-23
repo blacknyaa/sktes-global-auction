@@ -145,6 +145,16 @@ export function trustedProxyHops(): number {
   return Math.floor(n);
 }
 
+const IPV4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+const IPV6 = /^[0-9a-fA-F:]{2,45}$/;
+
+/** Keeps anything that is not an address out of the records. */
+function asAddress(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const v = value.trim().replace(/^\[|\]$/g, "");
+  return IPV4.test(v) || IPV6.test(v) ? v : null;
+}
+
 /**
  * Picks the client address from an X-Forwarded-For chain.
  * Exported for a small check; production goes through clientIp().
@@ -159,11 +169,16 @@ export function clientIpFromForwarded(
       .split(",")
       .map((p) => p.trim())
       .filter(Boolean);
-    if (parts.length > 0) {
-      const idx = Math.max(0, parts.length - hops);
-      return parts[idx]!;
+
+    // A chain shorter than the hops we claim means the proxies that were
+    // meant to append did not. Clamping the index to 0 here would hand back
+    // the entry the caller wrote, which is the thing we are guarding against.
+    if (parts.length >= hops) {
+      const picked = asAddress(parts[parts.length - hops]);
+      if (picked) return picked;
     }
   }
-  const real = fallback?.trim();
-  return real || "127.0.0.1";
+  // With nothing trusted in front, x-real-ip is as freely written as the
+  // chain was, so an address shape is the most that can be asked of it.
+  return asAddress(fallback) ?? "unknown";
 }

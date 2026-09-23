@@ -24,8 +24,8 @@ check(
 );
 check(
   "2 hops: skip the outermost proxy, take the next",
-  clientIpFromForwarded("spoof, client, edge", 2),
-  "client"
+  clientIpFromForwarded("9.9.9.9, 203.0.113.7, 10.0.0.1", 2),
+  "203.0.113.7"
 );
 check(
   "hops=0: ignore X-Forwarded-For, use X-Real-IP",
@@ -33,14 +33,31 @@ check(
   "9.9.9.9"
 );
 check(
-  "no forwarding headers",
+  "no forwarding headers at all",
   clientIpFromForwarded(null, 1, null),
-  "127.0.0.1"
+  "unknown"
 );
 check(
   "blank entries are dropped",
   clientIpFromForwarded("1.2.3.4,  , 10.0.0.1", 1),
   "10.0.0.1"
+);
+
+// Two things the first version let through.
+check(
+  "a chain shorter than the hops we trust is not evidence",
+  clientIpFromForwarded("9.9.9.9", 2),
+  "unknown"
+);
+check(
+  "anything that is not an address is refused",
+  clientIpFromForwarded("not-an-ip", 1),
+  "unknown"
+);
+check(
+  "a bracketed IPv6 address is kept",
+  clientIpFromForwarded("[::1]", 1),
+  "::1"
 );
 
 if (failures) {
