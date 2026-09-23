@@ -8,12 +8,8 @@ import { PageHeader } from "@/components/console/ConsoleShell";
 import { Badge, Card } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateTime } from "@/lib/datetime";
-import {
-  beginMfaAction,
-  disableMfaAction,
-  revokeOtherSessionsAction,
-} from "./actions";
-import { ChangePasswordForm, EnableMfaForm } from "./forms";
+import { beginMfaAction, revokeOtherSessionsAction } from "./actions";
+import { ChangePasswordForm, DisableMfaForm, EnableMfaForm } from "./forms";
 
 export const metadata: Metadata = { title: "セキュリティ設定" };
 export const dynamic = "force-dynamic";
@@ -62,11 +58,17 @@ export default async function SecurityPage() {
           </div>
 
           {row?.mfaEnabled ? (
-            <form action={disableMfaAction} className="mt-5">
-              <SubmitButton className="btn-danger" confirm={dict.auth.confirmDisableMfa} pendingLabel={dict.common.processing}>
-                {dict.auth.mfaDisable}
-              </SubmitButton>
-            </form>
+            <DisableMfaForm
+              labels={{
+                current: dict.auth.currentPassword,
+                code: dict.auth.code,
+                disable: dict.auth.mfaDisable,
+                confirm: dict.auth.confirmDisableMfa,
+                lead: dict.auth.mfaDisableLead,
+                wrongPassword: dict.auth.invalidCredentials,
+                invalid: dict.auth.mfaInvalid,
+              }}
+            />
           ) : secret ? (
             <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
               {qrDataUrl && (

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   changePasswordAction,
+  disableMfaAction,
   enableMfaAction,
   type SecurityState,
 } from "./actions";
@@ -43,6 +44,68 @@ export function EnableMfaForm({
       )}
       {state.ok && (
         <p className="w-full text-sm font-medium text-success">{labels.enrolled}</p>
+      )}
+    </form>
+  );
+}
+
+export function DisableMfaForm({
+  labels,
+}: {
+  labels: {
+    current: string;
+    code: string;
+    disable: string;
+    confirm: string;
+    lead: string;
+    wrongPassword: string;
+    invalid: string;
+  };
+}) {
+  const [state, action] = useActionState<SecurityState, FormData>(
+    disableMfaAction,
+    {}
+  );
+  return (
+    <form action={action} className="mt-5 space-y-3">
+      <p className="text-sm text-ink-2">{labels.lead}</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="label" htmlFor="mfa-off-current">
+            {labels.current}
+          </label>
+          <input
+            id="mfa-off-current"
+            name="current"
+            type="password"
+            required
+            autoComplete="current-password"
+            className="input w-56"
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="mfa-off-code">
+            {labels.code}
+          </label>
+          <input
+            id="mfa-off-code"
+            name="code"
+            inputMode="numeric"
+            maxLength={6}
+            required
+            className="input tnum w-36 text-center text-lg font-bold tracking-[0.3em]"
+            placeholder="000000"
+          />
+        </div>
+        <SubmitButton className="btn-danger" confirm={labels.confirm}>
+          {labels.disable}
+        </SubmitButton>
+      </div>
+      {state.error === "CURRENT" && (
+        <p className="text-sm font-medium text-danger">{labels.wrongPassword}</p>
+      )}
+      {(state.error === "INVALID" || state.error === "SETUP") && (
+        <p className="text-sm font-medium text-danger">{labels.invalid}</p>
       )}
     </form>
   );

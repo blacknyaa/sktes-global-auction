@@ -529,6 +529,47 @@ try {
           .catch(() => false));
       if (!replayRejected) await shot(page, "x-mfa-replay");
       log("一度使ったコードは、有効な間でも再び使えない", replayRejected);
+
+      // The replay attempt above left us on the challenge screen; get in with
+      // a fresh code before going near the settings.
+      await nextTotpStep();
+      await page.fill('input[name="code"]', totp(secret));
+      await Promise.all([
+        page.waitForURL(/\/dashboard/, { timeout: 30000 }),
+        page.locator('button[type="submit"]').click(),
+      ]);
+
+      // Switching the second factor off is the moment a stolen session would
+      // aim for, so it has to prove both the password and a live code.
+      await page.goto(`${BASE}/settings/security`, { waitUntil: "networkidle" });
+      const offCode = page.locator("#mfa-off-code");
+      log("無効化には入力が要る", (await page.locator("#mfa-off-current").count()) > 0 && (await offCode.count()) > 0);
+
+      await nextTotpStep();
+      await page.fill("#mfa-off-current", "WrongPass2026");
+      await page.fill("#mfa-off-code", totp(secret));
+      await act(page, page.locator("form:has(#mfa-off-code) button[type=submit]").first());
+      log(
+        "パスワードが違えば無効化できない",
+        (await page.locator("#mfa-off-code").count()) > 0
+      );
+
+      await page.fill("#mfa-off-current", "FlowTest2026");
+      await page.fill("#mfa-off-code", "000000");
+      await act(page, page.locator("form:has(#mfa-off-code) button[type=submit]").first());
+      log(
+        "コードが違えば無効化できない",
+        (await page.locator("#mfa-off-code").count()) > 0
+      );
+
+      await nextTotpStep();
+      await page.fill("#mfa-off-current", "FlowTest2026");
+      await page.fill("#mfa-off-code", totp(secret));
+      await act(page, page.locator("form:has(#mfa-off-code) button[type=submit]").first());
+      log(
+        "両方そろえば無効にできる",
+        (await page.locator("#mfa-off-code").count()) === 0
+      );
     }
     await c.close();
   }

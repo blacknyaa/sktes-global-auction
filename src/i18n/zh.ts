@@ -518,6 +518,7 @@ export const zh: Dictionary = {
     mfaManual: "若无法扫描，请手动输入以下密钥。",
     mfaEnable: "启用 MFA",
     mfaDisable: "停用 MFA",
+    mfaDisableLead: "如需停用，请同时输入当前密码与认证应用中正在显示的验证码。",
     confirmDisableMfa: "将停用多因素认证，仅凭密码即可登录。确定吗？",
     confirmRevokeSessions: "将退出其他所有设备。确定吗？",
     demoResetDone: "演示数据已恢复初始状态，请使用演示账号重新登录。",

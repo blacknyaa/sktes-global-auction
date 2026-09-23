@@ -56,8 +56,37 @@ export async function enableMfaAction(
   return { ok: "ENABLED" };
 }
 
-export async function disableMfaAction(): Promise<void> {
+/**
+ * Turning the second factor off asks for the password and a current code.
+ *
+ * The threat here is a session someone else is holding - a cookie left on
+ * another machine, or stolen. A password alone does not answer it: multi-factor
+ * exists precisely for the case where the password is already known. A code
+ * alone does not either, since one glance over a shoulder is enough. Asking
+ * for both costs nothing extra to the person who has lost their device, who
+ * cannot pass either check and needs the desk regardless.
+ */
+export async function disableMfaAction(
+  _prev: SecurityState,
+  formData: FormData
+): Promise<SecurityState> {
   const user = await requireUser();
+  const current = String(formData.get("current") ?? "");
+  const code = String(formData.get("code") ?? "");
+
+  const row = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!row?.mfaSecret) return { error: "SETUP" };
+  if (!(await verifyPassword(current, row.passwordHash))) {
+    return { error: "CURRENT" };
+  }
+
+  // The same claim the login path uses, so a code spent here cannot be
+  // replayed to get past the challenge afterwards.
+  const step = matchTotpStep(row.mfaSecret, code);
+  if (step === null || !(await claimTotpStep(user.id, step))) {
+    return { error: "INVALID" };
+  }
+
   await prisma.user.update({
     where: { id: user.id },
     data: { mfaEnabled: false, mfaSecret: null },
@@ -69,6 +98,7 @@ export async function disableMfaAction(): Promise<void> {
     summary: `${user.email} が多要素認証を無効にしました`,
   });
   revalidatePath("/settings/security");
+  return { ok: "DISABLED" };
 }
 
 export async function changePasswordAction(
