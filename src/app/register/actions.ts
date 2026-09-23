@@ -7,11 +7,7 @@ import { LOGIN_ID_PATTERN, hashPassword, normalizeLoginId } from "@/lib/auth";
 import { getDictionary } from "@/i18n";
 import { writeAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
-import {
-  ALLOWED_DOCUMENT_TYPES,
-  saveUpload,
-  validateUpload,
-} from "@/lib/storage";
+import { inspectDocument, saveUpload } from "@/lib/storage";
 import type { Locale } from "@/lib/constants";
 
 export type RegisterState = { error?: string; field?: string };
@@ -107,7 +103,7 @@ export async function registerAction(
   }
 
   // Collect and validate the uploads before writing anything to the database.
-  const uploads: { kind: string; file: File }[] = [];
+  const uploads: { kind: string; file: File; mimeType: string }[] = [];
   for (const slot of DOC_SLOTS) {
     const file = formData.get(slot.field);
     if (!(file instanceof File) || file.size === 0) {
@@ -119,9 +115,9 @@ export async function registerAction(
       }
       continue;
     }
-    const problem = validateUpload(file, ALLOWED_DOCUMENT_TYPES);
-    if (problem) return { error: problem, field: slot.field };
-    uploads.push({ kind: slot.kind, file });
+    const inspected = await inspectDocument(file);
+    if ("problem" in inspected) return { error: inspected.problem, field: slot.field };
+    uploads.push({ kind: slot.kind, file, mimeType: inspected.mimeType });
   }
 
   const exportDestinations = formData
@@ -151,7 +147,7 @@ export async function registerAction(
   });
 
   for (const up of uploads) {
-    const stored = await saveUpload(up.file, `documents/${company.id}`);
+    const stored = await saveUpload(up.file, `documents/${company.id}`, up.mimeType);
     await prisma.companyDocument.create({
       data: {
         companyId: company.id,

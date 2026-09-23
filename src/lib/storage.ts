@@ -38,11 +38,11 @@ export type StoredFile = {
 
 export async function saveUpload(
   file: File,
-  folder: string
+  folder: string,
+  mimeType = file.type || "application/octet-stream"
 ): Promise<StoredFile> {
   const safeName = file.name.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
   const storageKey = `${folder}/${randomUUID()}_${safeName}`;
-  const mimeType = file.type || "application/octet-stream";
   const data = Buffer.from(await file.arrayBuffer());
 
   await prisma.storedBlob.create({
@@ -85,6 +85,36 @@ export function validateUpload(
     return `この形式には対応していません（${file.type}）。`;
   }
   return null;
+}
+
+function sniffDocumentType(head: Uint8Array): string | null {
+  const at = (offset: number, ...bytes: number[]) =>
+    bytes.every((b, i) => head[offset + i] === b);
+  if (at(0, 0x25, 0x50, 0x44, 0x46, 0x2d)) return "application/pdf"; // %PDF-
+  if (at(0, 0xff, 0xd8, 0xff)) return "image/jpeg";
+  if (at(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "image/png";
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) {
+    return "image/webp"; // RIFF....WEBP
+  }
+  return null;
+}
+
+/**
+ * Member documents are served back inline, so their type is taken from the
+ * first bytes of the file. The type the browser reports is chosen by the
+ * sender and proves nothing about the contents.
+ */
+export async function inspectDocument(
+  file: File
+): Promise<{ mimeType: string } | { problem: string }> {
+  const problem = validateUpload(file, ALLOWED_DOCUMENT_TYPES);
+  if (problem) return { problem };
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const mimeType = sniffDocumentType(head);
+  if (!mimeType) {
+    return { problem: "PDF・JPEG・PNG・WebP のいずれかのファイルを添付してください。" };
+  }
+  return { mimeType };
 }
 
 export function humanSize(bytes: number): string {
