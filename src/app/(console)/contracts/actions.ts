@@ -29,6 +29,14 @@ function buyerUser(contract: Loaded) {
   return contract.award.winnerCompany.users[0] ?? null;
 }
 
+/**
+ * Access is checked on the contract, so the shipment id that arrives with the
+ * form is only honoured if it belongs to that same contract.
+ */
+function ownShipment(contract: Loaded, shipmentId: string) {
+  return contract.shipments.find((s) => s.id === shipmentId) ?? null;
+}
+
 async function assertAccess(
   contract: Loaded,
   role: string,
@@ -234,9 +242,11 @@ export async function markShippedAction(formData: FormData): Promise<void> {
   const contract = await loadContract(contractId);
   if (!contract) return;
   if (!(await assertAccess(contract, user.role, user.companyId, "SELLER"))) return;
+  const shipment = ownShipment(contract, shipmentId);
+  if (!shipment) return;
 
   await prisma.shipment.update({
-    where: { id: shipmentId },
+    where: { id: shipment.id },
     data: {
       status: "SHIPPED",
       shippedAt: new Date(),
@@ -283,9 +293,11 @@ export async function confirmReceiptAction(formData: FormData): Promise<void> {
   const contract = await loadContract(contractId);
   if (!contract) return;
   if (!(await assertAccess(contract, user.role, user.companyId, "BUYER"))) return;
+  const shipment = ownShipment(contract, shipmentId);
+  if (!shipment) return;
 
   await prisma.shipment.update({
-    where: { id: shipmentId },
+    where: { id: shipment.id },
     data: { status: "RECEIVED", receivedAt: new Date() },
   });
   await prisma.contract.update({
@@ -324,10 +336,12 @@ export async function reportDefectAction(formData: FormData): Promise<void> {
   const contract = await loadContract(contractId);
   if (!contract) return;
   if (!(await assertAccess(contract, user.role, user.companyId, "BUYER"))) return;
+  const shipment = ownShipment(contract, shipmentId);
+  if (!shipment) return;
 
   await prisma.defectReport.create({
     data: {
-      shipmentId,
+      shipmentId: shipment.id,
       reportedById: user.id,
       body: body.slice(0, 2000),
       status: "OPEN",
