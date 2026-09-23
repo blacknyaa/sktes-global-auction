@@ -84,16 +84,27 @@ export async function changePasswordAction(
     return { error: "CURRENT" };
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash: await hashPassword(next) },
-  });
+  const passwordHash = await hashPassword(next);
+  const token = await currentSessionToken();
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    }),
+    prisma.session.deleteMany({
+      where: {
+        userId: user.id,
+        ...(token ? { NOT: { tokenHash: sha256(token) } } : {}),
+      },
+    }),
+  ]);
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.name,
     action: "PASSWORD_RESET",
-    summary: `${user.email} がパスワードを変更しました`,
+    summary: `${user.email} がパスワードを変更し、他端末のセッションを破棄しました`,
   });
+  revalidatePath("/settings/security");
   return { ok: "CHANGED" };
 }
 
