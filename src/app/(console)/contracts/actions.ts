@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
@@ -121,39 +122,58 @@ export async function confirmPaymentAction(formData: FormData): Promise<void> {
   if (!invoice || invoice.status === "PAID") return;
 
   const now = new Date();
-  const receiptCount = await prisma.receipt.count();
+  let receiptSerial = (await prisma.receipt.count()) + 1;
   const isJapanBuyer = contract.award.winnerCompany.countryCode === "JP";
 
-  await prisma.$transaction([
-    prisma.invoice.update({
-      where: { id: invoice.id },
-      data: { status: "PAID", paidAt: now },
-    }),
-    prisma.payment.create({
-      data: {
-        invoiceId: invoice.id,
-        method: invoice.paymentMethod ?? "BANK_TRANSFER",
-        amountCents: invoice.totalCents,
-        currency: invoice.currency,
-        reference: reference || null,
-        paidAt: now,
-        confirmedById: user.id,
-      },
-    }),
-    prisma.receipt.create({
-      data: {
-        invoiceId: invoice.id,
-        receiptNo: `RCP-${String(receiptCount + 1).padStart(4, "0")}`,
-        // Only a Japanese domestic buyer needs a qualified-invoice receipt.
-        isQualified: isJapanBuyer,
-        issuedAt: now,
-      },
-    }),
-    prisma.contract.update({
-      where: { id: contractId },
-      data: { status: "IN_CONTRACT" },
-    }),
-  ]);
+  let paid = false;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try {
+      paid = await prisma.$transaction(async (tx) => {
+        const { count } = await tx.invoice.updateMany({
+          where: { id: invoice.id, status: { not: "PAID" } },
+          data: { status: "PAID", paidAt: now },
+        });
+        if (count === 0) return false;
+
+        await tx.payment.create({
+          data: {
+            invoiceId: invoice.id,
+            method: invoice.paymentMethod ?? "BANK_TRANSFER",
+            amountCents: invoice.totalCents,
+            currency: invoice.currency,
+            reference: reference || null,
+            paidAt: now,
+            confirmedById: user.id,
+          },
+        });
+        await tx.receipt.create({
+          data: {
+            invoiceId: invoice.id,
+            receiptNo: `RCP-${String(receiptSerial).padStart(4, "0")}`,
+            // Only a Japanese domestic buyer needs a qualified-invoice receipt.
+            isQualified: isJapanBuyer,
+            issuedAt: now,
+          },
+        });
+        await tx.contract.update({
+          where: { id: contractId },
+          data: { status: "IN_CONTRACT" },
+        });
+        return true;
+      });
+      break;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        receiptSerial += 1;
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (!paid) return;
 
   const buyer = buyerUser(contract);
   if (buyer) {
