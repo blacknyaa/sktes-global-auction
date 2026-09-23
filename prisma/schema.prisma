@@ -114,6 +114,7 @@ model User {
   status           String    @default("ACTIVE") // ACTIVE / LOCKED / DISABLED
   mfaEnabled       Boolean   @default(false)
   mfaSecret        String?
+  mfaLastStep      Int?
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?

@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
+  claimTotpStep,
   hashPassword,
   requireUser,
   sha256,
   verifyPassword,
 } from "@/lib/auth";
-import { generateTotpSecret, verifyTotp } from "@/lib/totp";
+import { generateTotpSecret, matchTotpStep } from "@/lib/totp";
 import { writeAudit } from "@/lib/audit";
 import { currentSessionToken } from "@/lib/auth";
 
@@ -36,7 +37,10 @@ export async function enableMfaAction(
   if (!row?.mfaSecret) return { error: "SETUP" };
 
   const code = String(formData.get("code") ?? "");
-  if (!verifyTotp(row.mfaSecret, code)) return { error: "INVALID" };
+  const step = matchTotpStep(row.mfaSecret, code);
+  if (step === null || !(await claimTotpStep(user.id, step))) {
+    return { error: "INVALID" };
+  }
 
   await prisma.user.update({
     where: { id: user.id },

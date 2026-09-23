@@ -68,24 +68,29 @@ export function totpCode(secret: string, at: Date = new Date()): string {
 
 /**
  * Accepts the current code plus one step either side, which covers clock
- * drift between a phone in Manila and a server in Tokyo.
+ * drift between a phone in Manila and a server in Tokyo. Returns the time
+ * step the code belongs to, or null. A code stays acceptable for up to three
+ * steps, so callers that sign someone in must also refuse a step that has
+ * already been used (see claimTotpStep in auth.ts).
  */
-export function verifyTotp(
+export function matchTotpStep(
   secret: string,
   token: string,
   at: Date = new Date(),
   window = 1
-): boolean {
+): number | null {
   const candidate = token.replace(/\D/g, "");
-  if (candidate.length !== DIGITS) return false;
+  if (candidate.length !== DIGITS) return null;
   for (let w = -window; w <= window; w++) {
     const t = new Date(at.getTime() + w * STEP_SECONDS * 1000);
     const expected = totpCode(secret, t);
     const a = Buffer.from(expected);
     const b = Buffer.from(candidate);
-    if (a.length === b.length && timingSafeEqual(a, b)) return true;
+    if (a.length === b.length && timingSafeEqual(a, b)) {
+      return Math.floor(t.getTime() / 1000 / STEP_SECONDS);
+    }
   }
-  return false;
+  return null;
 }
 
 export function otpauthUrl(
