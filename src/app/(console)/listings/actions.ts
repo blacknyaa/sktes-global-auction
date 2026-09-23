@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
@@ -10,6 +11,12 @@ import { createLotSeal } from "@/lib/seal";
 import { localInputToUtc } from "@/lib/datetime";
 import { parseManifest, type ManifestRow } from "@/lib/manifest";
 import { ALLOWED_SHEET_TYPES, saveUpload, validateUpload } from "@/lib/storage";
+
+function lotNumberFor(countryCode: string, at: Date, serial: number): string {
+  return `SKT-${countryCode}-${String(at.getFullYear()).slice(2)}${String(
+    at.getMonth() + 1
+  ).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
+}
 
 export type ParseState = {
   rows?: ManifestRow[];
@@ -131,62 +138,82 @@ export async function createLotAction(
     ? Math.round(Number(parsed.data.reserve.replace(/[, ]/g, "")) * 100)
     : null;
 
-  const serial = (await prisma.lot.count()) + 1;
+  let serial = (await prisma.lot.count()) + 1;
   const now = new Date();
-  const lotNumber = `SKT-${company.countryCode}-${String(now.getFullYear()).slice(2)}${String(
-    now.getMonth() + 1
-  ).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
-
-  const seal = createLotSeal(lotNumber, endAt);
   const publish = formData.get("publish") === "1";
   const extensionEnabled = formData.get("extensionEnabled") === "on";
+  const extensionTriggerMin = Number(formData.get("extensionTriggerMin") ?? 5) || 5;
+  const extensionMinutes = Number(formData.get("extensionMinutes") ?? 5) || 5;
+  const itemRows = rows.map((r, i) => ({
+    lineNo: i + 1,
+    maker: String(r.maker).slice(0, 120),
+    model: String(r.model).slice(0, 160),
+    cpu: r.cpu ? String(r.cpu).slice(0, 120) : null,
+    ramGb: r.ramGb ?? null,
+    storage: r.storage ? String(r.storage).slice(0, 120) : null,
+    gpu: r.gpu ? String(r.gpu).slice(0, 120) : null,
+    screen: r.screen ? String(r.screen).slice(0, 60) : null,
+    grade: r.grade ? String(r.grade).slice(0, 8) : null,
+    quantity: Number(r.quantity) || 1,
+    note: r.note ? String(r.note).slice(0, 240) : null,
+  }));
 
-  const lot = await prisma.lot.create({
-    data: {
-      lotNumber,
-      title: parsed.data.title,
-      titleEn: parsed.data.titleEn,
-      description: parsed.data.description || null,
-      categoryCode: parsed.data.categoryCode,
-      condition: parsed.data.condition,
-      sellerCompanyId: company.id,
-      countryCode: company.countryCode,
-      quantity,
-      storageLocation: parsed.data.storageLocation,
-      handoverLocation: parsed.data.handoverLocation,
-      currency: "USD",
-      reserveCents,
-      minimumBidCents,
-      auctionType: parsed.data.auctionType,
-      startAt,
-      endAt,
-      extensionEnabled,
-      extensionTriggerMin: Number(formData.get("extensionTriggerMin") ?? 5) || 5,
-      extensionMinutes: Number(formData.get("extensionMinutes") ?? 5) || 5,
-      status: publish ? (startAt <= now ? "OPEN" : "SCHEDULED") : "DRAFT",
-      publishedAt: publish ? now : null,
-      sealPublicKey: seal.sealPublicKey,
-      sealedPrivateKey: seal.sealedPrivateKey,
-      sealIv: seal.sealIv,
-      sealAuthTag: seal.sealAuthTag,
-      createdById: user.id,
-      items: {
-        create: rows.map((r, i) => ({
-          lineNo: i + 1,
-          maker: String(r.maker).slice(0, 120),
-          model: String(r.model).slice(0, 160),
-          cpu: r.cpu ? String(r.cpu).slice(0, 120) : null,
-          ramGb: r.ramGb ?? null,
-          storage: r.storage ? String(r.storage).slice(0, 120) : null,
-          gpu: r.gpu ? String(r.gpu).slice(0, 120) : null,
-          screen: r.screen ? String(r.screen).slice(0, 60) : null,
-          grade: r.grade ? String(r.grade).slice(0, 8) : null,
-          quantity: Number(r.quantity) || 1,
-          note: r.note ? String(r.note).slice(0, 240) : null,
-        })),
-      },
-    },
-  });
+  // lotNumber is unique. Two sellers saving at once can both pick the same
+  // count()+1; on a clash, bump the serial and rebuild the seal (it binds the
+  // number into its authenticated data).
+  let lot: Awaited<ReturnType<typeof prisma.lot.create>> | null = null;
+  let lotNumber = "";
+  for (let attempt = 0; attempt < 8; attempt++) {
+    lotNumber = lotNumberFor(company.countryCode, now, serial);
+    const seal = createLotSeal(lotNumber, endAt);
+    try {
+      lot = await prisma.lot.create({
+        data: {
+          lotNumber,
+          title: parsed.data.title,
+          titleEn: parsed.data.titleEn,
+          description: parsed.data.description || null,
+          categoryCode: parsed.data.categoryCode,
+          condition: parsed.data.condition,
+          sellerCompanyId: company.id,
+          countryCode: company.countryCode,
+          quantity,
+          storageLocation: parsed.data.storageLocation,
+          handoverLocation: parsed.data.handoverLocation,
+          currency: "USD",
+          reserveCents,
+          minimumBidCents,
+          auctionType: parsed.data.auctionType,
+          startAt,
+          endAt,
+          extensionEnabled,
+          extensionTriggerMin,
+          extensionMinutes,
+          status: publish ? (startAt <= now ? "OPEN" : "SCHEDULED") : "DRAFT",
+          publishedAt: publish ? now : null,
+          sealPublicKey: seal.sealPublicKey,
+          sealedPrivateKey: seal.sealedPrivateKey,
+          sealIv: seal.sealIv,
+          sealAuthTag: seal.sealAuthTag,
+          createdById: user.id,
+          items: { create: itemRows },
+        },
+      });
+      break;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        serial += 1;
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (!lot) {
+    return { error: "ロット番号を割り当てられませんでした。もう一度お試しください。" };
+  }
 
   const storageKey = String(formData.get("storageKey") ?? "");
   const fileName = String(formData.get("fileName") ?? "");
