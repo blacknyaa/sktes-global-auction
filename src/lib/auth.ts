@@ -358,7 +358,7 @@ export async function consumePasswordResetToken(
     // check: two requests racing with the same link both pass the read, but
     // only one of them can flip usedAt from null.
     const { count } = await tx.passwordResetToken.updateMany({
-      where: { id: row.id, usedAt: null },
+      where: { id: row.id, usedAt: null, expiresAt: { gt: new Date() } },
       data: { usedAt: new Date() },
     });
     if (count === 0) return false;
