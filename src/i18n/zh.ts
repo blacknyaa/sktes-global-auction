@@ -565,6 +565,8 @@ export const zh: Dictionary = {
     terms: "使用条款",
     agreeTerms: "我已阅读并同意使用条款",
     submitApplication: "提交临时注册申请",
+    yourLoginId: "您的登录ID",
+    yourLoginIdHint: "今后请使用该ID登录，请妥善记录。",
     doneTitle: "已受理临时注册",
     doneLead: "我们将审核您提交的资料并以邮件通知结果。审核完成前无法投标。",
     statusTitle: "审核状态",
