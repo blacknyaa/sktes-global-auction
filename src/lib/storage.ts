@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 
 /**
@@ -39,13 +40,14 @@ export type StoredFile = {
 export async function saveUpload(
   file: File,
   folder: string,
-  mimeType = file.type || "application/octet-stream"
+  mimeType = file.type || "application/octet-stream",
+  db: Prisma.TransactionClient = prisma
 ): Promise<StoredFile> {
   const safeName = file.name.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
   const storageKey = `${folder}/${randomUUID()}_${safeName}`;
   const data = Buffer.from(await file.arrayBuffer());
 
-  await prisma.storedBlob.create({
+  await db.storedBlob.create({
     data: {
       storageKey,
       mimeType,
