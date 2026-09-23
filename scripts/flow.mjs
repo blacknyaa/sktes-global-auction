@@ -62,6 +62,11 @@ function totp(secret, at = new Date()) {
     ((d[o] & 0x7f) << 24) | ((d[o + 1] & 0xff) << 16) | ((d[o + 2] & 0xff) << 8) | (d[o + 3] & 0xff);
   return String(bin % 1e6).padStart(6, "0");
 }
+// Each code is accepted once, so a second sign-in has to wait for a fresh one.
+async function nextTotpStep() {
+  const ms = 30_000 - (Date.now() % 30_000) + 1_000;
+  await new Promise((r) => setTimeout(r, ms));
+}
 
 // --- a tiny valid PDF and XLSX for the upload tests ------------------------
 const PDF = Buffer.from(
@@ -488,12 +493,27 @@ try {
       if (!rejected) await shot(page, "x-mfa-wrong-code");
       log("誤ったコードは拒否される", rejected);
 
-      await page.fill('input[name="code"]', totp(secret));
+      await nextTotpStep();
+      const loginCode = totp(secret);
+      await page.fill('input[name="code"]', loginCode);
       await Promise.all([
         page.waitForURL(/\/dashboard/, { timeout: 30000 }),
         page.locator('button[type="submit"]').click(),
       ]);
       log("正しいコードでログインできる", page.url().includes("/dashboard"));
+
+      await logout(page);
+      await login(page, newBuyerId, "FlowTest2026");
+      await page.fill('input[name="code"]', loginCode);
+      await act(page, page.locator(String.raw`button[type="submit"]`).first());
+      const replayRejected =
+        page.url().includes("/login/mfa") &&
+        (await page
+          .waitForSelector("text=コードが正しくありません", { timeout: 15000 })
+          .then(() => true)
+          .catch(() => false));
+      if (!replayRejected) await shot(page, "x-mfa-replay");
+      log("一度使ったコードは、有効な間でも再び使えない", replayRejected);
     }
     await c.close();
   }
