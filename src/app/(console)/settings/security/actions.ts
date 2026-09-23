@@ -81,7 +81,7 @@ export async function disableMfaAction(
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.name,
-    action: "MFA_ENROLLED",
+    action: "MFA_DISABLED",
     summary: `${user.email} が多要素認証を無効にしました`,
   });
   revalidatePath("/settings/security");
