@@ -128,3 +128,42 @@ export function usingFallbackSecrets(): boolean {
 export function demoModeEnabled(): boolean {
   return process.env.DEMO_MODE === "true" || usingBundledDemoDb();
 }
+
+/**
+ * How many reverse proxies in front of the app append to X-Forwarded-For.
+ *
+ * The left side of that header can be set by the client. Each trusted proxy
+ * appends the address it actually saw. With N trusted proxies, the client is
+ * at index (length - N). Default is 1 (one edge proxy such as Vercel). Set to
+ * 0 to ignore X-Forwarded-For entirely.
+ */
+export function trustedProxyHops(): number {
+  const raw = process.env.TRUSTED_PROXY_HOPS?.trim();
+  if (raw === undefined || raw === "") return 1;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return 1;
+  return Math.floor(n);
+}
+
+/**
+ * Picks the client address from an X-Forwarded-For chain.
+ * Exported for a small check; production goes through clientIp().
+ */
+export function clientIpFromForwarded(
+  forwarded: string | null,
+  hops: number,
+  fallback: string | null = null
+): string {
+  if (hops > 0 && forwarded) {
+    const parts = forwarded
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length > 0) {
+      const idx = Math.max(0, parts.length - hops);
+      return parts[idx]!;
+    }
+  }
+  const real = fallback?.trim();
+  return real || "127.0.0.1";
+}

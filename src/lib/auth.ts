@@ -6,7 +6,12 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import type { Role } from "./constants";
-import { sessionSecret, usingBundledDemoDb } from "./runtime";
+import {
+  sessionSecret,
+  usingBundledDemoDb,
+  trustedProxyHops,
+  clientIpFromForwarded,
+} from "./runtime";
 
 export const SESSION_COOKIE = "sktes_session";
 export const MFA_COOKIE = "sktes_mfa_pending";
@@ -26,10 +31,12 @@ function sha256(value: string): string {
 
 export async function clientIp(): Promise<string> {
   const h = await headers();
-  return (
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    h.get("x-real-ip") ??
-    "127.0.0.1"
+  // X-Forwarded-For's left side is attacker-controlled unless a trusted proxy
+  // rewrites or appends. Take the entry added by the outermost trusted hop.
+  return clientIpFromForwarded(
+    h.get("x-forwarded-for"),
+    trustedProxyHops(),
+    h.get("x-real-ip")
   );
 }
 

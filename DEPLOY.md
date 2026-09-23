@@ -75,12 +75,19 @@ Vercel のプロジェクト設定 → Settings → Environment Variables に、
 | `DEMO_MODE` | `true` |
 | `SITE_URL` | `https://<プロジェクト名>.vercel.app` |
 | `HEALTH_TOKEN` | 手順2と同じ方法で生成した長いランダム文字列（任意） |
+| `TRUSTED_PROXY_HOPS` | `1`（任意。手前の逆プロキシが何段あるか。Vercel ならそのままでよい） |
 
 `/api/health` は、データベースを設定した環境では誰にでも `healthy` と
 `diagnosis` だけを返します。環境変数の名前や値の長さを含む詳細は、
 管理者でログインして開くか、`/api/health?token=<HEALTH_TOKEN>` で開きます。
 データベースが不調で管理者がログインできないときのために、
 `HEALTH_TOKEN` を登録しておくことをおすすめします。
+
+入札・セッション・不正監視に残す IP は、`X-Forwarded-For` の**右から**
+`TRUSTED_PROXY_HOPS` 段目を使います（既定は `1`）。左側はリクエスト側が
+自由に書けるためです。Vercel の手前に自前のプロキシが無い構成ならそのままで構いません。
+プロキシを信用しない／無い場合は `0` にしてください（そのときは `X-Real-IP` か
+`127.0.0.1` になります）。
 
 `DATABASE_URL` が `postgres` で始まっていれば、ビルド時に Prisma の
 データベース種別が自動で PostgreSQL に切り替わります
