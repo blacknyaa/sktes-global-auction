@@ -1,25 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { readStored } from "@/lib/storage";
+import { contentDisposition, readStored } from "@/lib/storage";
 import { writeAudit } from "@/lib/audit";
 
 
 // Serves per-request, authorised content; never cache or prerender it.
 export const dynamic = "force-dynamic";
 
-/**
- * `filename=` does not decode percent escapes, so non-ASCII names go in
- * `filename*` (RFC 6266 / RFC 5987) with a plain ASCII fallback beside it.
- */
-function contentDisposition(fileName: string): string {
-  const fallback = fileName.replace(/[^\x20-\x7e]|["\\]/g, "_");
-  const encoded = encodeURIComponent(fileName).replace(
-    /['()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
-  );
-  return `inline; filename="${fallback}"; filename*=UTF-8''${encoded}`;
-}
 
 /**
  * Member documents are served through the application, never from a public
@@ -60,7 +48,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "content-type": doc.mimeType,
-      "content-disposition": contentDisposition(doc.fileName),
+      "content-disposition": contentDisposition(doc.fileName, "inline"),
       "cache-control": "private, no-store",
       "x-content-type-options": "nosniff",
     },
