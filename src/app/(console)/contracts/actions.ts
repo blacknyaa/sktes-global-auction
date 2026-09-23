@@ -223,20 +223,45 @@ export async function requestShipmentAction(formData: FormData): Promise<void> {
   if (!invoice || invoice.status !== "PAID") return;
 
   const now = new Date();
-  await prisma.shipment.create({
-    data: {
-      contractId,
-      carrier: carrier || null,
-      incoterms: incoterms || "EXW",
-      status: "REQUESTED",
-      shipRequestedAt: now,
-      pickupRequestedAt: now,
-    },
-  });
-  await prisma.contract.update({
-    where: { id: contractId },
-    data: { status: "AWAITING_PAYMENT" === contract.status ? contract.status : "IN_CONTRACT" },
-  });
+  let created = false;
+  try {
+    created = await prisma.$transaction(async (tx) => {
+      const existing = await tx.shipment.count({ where: { contractId } });
+      if (existing > 0) return false;
+
+      await tx.shipment.create({
+        data: {
+          contractId,
+          carrier: carrier || null,
+          incoterms: incoterms || "EXW",
+          status: "REQUESTED",
+          shipRequestedAt: now,
+          pickupRequestedAt: now,
+        },
+      });
+      await tx.contract.update({
+        where: { id: contractId },
+        data: {
+          status:
+            "AWAITING_PAYMENT" === contract.status
+              ? contract.status
+              : "IN_CONTRACT",
+        },
+      });
+      return true;
+    });
+  } catch (err) {
+    // Two requests can both pass the empty check; the unique on contractId
+    // keeps a second row from landing.
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return;
+    }
+    throw err;
+  }
+  if (!created) return;
 
   const buyer = buyerUser(contract);
   if (buyer) {
