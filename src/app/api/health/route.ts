@@ -1,5 +1,7 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import {
   DATABASE_URL_CANDIDATES,
   bundledDemoDbExists,
@@ -24,8 +26,13 @@ export const dynamic = "force-dynamic";
  * It deliberately reports only booleans and a scrubbed error message. No
  * connection string, credential, host name or secret value ever leaves here -
  * see redact() below, which is applied to everything that comes back from the
- * driver. Remove this route, or put it behind an allow-list, before the system
- * carries real trading data.
+ * driver.
+ *
+ * Everyone gets the verdict and the diagnosis. The rest - variable names,
+ * value lengths, record counts, driver errors - maps out how the deployment is
+ * wired, so it goes only to a signed-in administrator or to a caller holding
+ * HEALTH_TOKEN. The token matters because the broken database that brings
+ * someone here is usually also what stops the administrator signing in.
  */
 
 /** Strips anything that could carry a credential or a host name. */
@@ -37,7 +44,29 @@ function redact(input: string): string {
     .slice(0, 400);
 }
 
-export async function GET() {
+function sameSecret(given: string, expected: string): boolean {
+  const digest = (s: string) => createHash("sha256").update(s).digest();
+  return timingSafeEqual(digest(given), digest(expected));
+}
+
+async function mayReadDetails(req: Request): Promise<boolean> {
+  // On the bundled demo database there is no configured infrastructure and
+  // no data that is not already in the repository.
+  if (usingBundledDemoDb()) return true;
+
+  const expected = process.env.HEALTH_TOKEN?.trim();
+  const given =
+    req.headers.get("x-health-token") ?? new URL(req.url).searchParams.get("token");
+  if (expected && given && sameSecret(given, expected)) return true;
+
+  try {
+    return (await getCurrentUser())?.role === "ADMIN";
+  } catch {
+    return false;
+  }
+}
+
+export async function GET(req: Request) {
   const dbUrl = resolveDatabaseUrl();
   const env = {
     DATABASE_URL: Boolean(dbUrl),
@@ -192,8 +221,23 @@ export async function GET() {
     schema.ok &&
     (bundled || (env.SEAL_MASTER_KEY === "ok" && Boolean(env.SESSION_SECRET)));
 
+  const init = {
+    status: healthy ? 200 : 503,
+    headers: { "cache-control": "no-store" },
+  };
+  if (!(await mayReadDetails(req))) {
+    return NextResponse.json(
+      {
+        healthy,
+        diagnosis,
+        details:
+          "詳細は管理者でログインしてから開くか、環境変数 HEALTH_TOKEN の値を ?token= に付けて開いてください。",
+      },
+      init
+    );
+  }
   return NextResponse.json(
     { healthy, diagnosis, mode, env, build, connection, schema },
-    { status: healthy ? 200 : 503, headers: { "cache-control": "no-store" } }
+    init
   );
 }

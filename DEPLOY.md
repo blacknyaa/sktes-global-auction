@@ -74,6 +74,13 @@ Vercel のプロジェクト設定 → Settings → Environment Variables に、
 | `SESSION_SECRET` | 手順2で生成した長いランダム文字列 |
 | `DEMO_MODE` | `true` |
 | `SITE_URL` | `https://<プロジェクト名>.vercel.app` |
+| `HEALTH_TOKEN` | 手順2と同じ方法で生成した長いランダム文字列（任意） |
+
+`/api/health` は、データベースを設定した環境では誰にでも `healthy` と
+`diagnosis` だけを返します。環境変数の名前や値の長さを含む詳細は、
+管理者でログインして開くか、`/api/health?token=<HEALTH_TOKEN>` で開きます。
+データベースが不調で管理者がログインできないときのために、
+`HEALTH_TOKEN` を登録しておくことをおすすめします。
 
 `DATABASE_URL` が `postgres` で始まっていれば、ビルド時に Prisma の
 データベース種別が自動で PostgreSQL に切り替わります
@@ -126,7 +133,7 @@ BASE_URL=https://xxx.vercel.app node scripts/flow.mjs --no-seed
 
 | 症状 | 原因 | 対処 |
 |---|---|---|
-| 環境変数を登録したのに反映されない | **変数名だけ作られて値が空** | `/api/health` の `valueLengths` を見る。長さが `0` なら値が空。値を入れ直し、Production にチェックを入れて保存し Redeploy |
+| 環境変数を登録したのに反映されない | **変数名だけ作られて値が空** | `/api/health?token=<HEALTH_TOKEN>` の `valueLengths` を見る。長さが `0` なら値が空。値を入れ直し、Production にチェックを入れて保存し Redeploy |
 | 同上（値は入っている） | Production 以外の環境にだけ登録された | 同じ変数を Production にも登録 |
 | `Application error: a server-side exception` | 同梱データベースが壊れているか、DATABASE_URL の設定が誤っている | `/api/health` の `diagnosis` を確認 |
 | 画面は出るがログインできない | デモデータが入っていない | Redeploy すればビルド中に自動投入されます |
