@@ -424,6 +424,8 @@ model Shipment {
   note              String?
 
   defects DefectReport[]
+
+  @@unique([contractId])
 }
 
 model DefectReport {
