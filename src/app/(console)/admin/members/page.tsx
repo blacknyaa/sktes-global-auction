@@ -144,7 +144,7 @@ export default async function MembersPage({
                   </Badge>
                 </td>
                 <td className="tnum text-right text-ink-2">
-                  {c.bidLimitCents ? formatMoney(c.bidLimitCents, "USD", locale) : "—"}
+                  {c.bidLimitCents != null ? formatMoney(c.bidLimitCents, "USD", locale) : "—"}
                 </td>
                 <td className="tnum text-right text-ink-2">{c._count.documents}</td>
                 <td className="tnum text-right text-ink-2">{c._count.bids}</td>

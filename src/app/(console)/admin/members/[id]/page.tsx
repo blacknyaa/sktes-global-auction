@@ -289,7 +289,7 @@ export default async function MemberDetailPage({
                   min={0}
                   step={100}
                   defaultValue={
-                    company.bidLimitCents ? company.bidLimitCents / 100 : 5000
+                    company.bidLimitCents != null ? company.bidLimitCents / 100 : 5000
                   }
                   className="input tnum"
                 />

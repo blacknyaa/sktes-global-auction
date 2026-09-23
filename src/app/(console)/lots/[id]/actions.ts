@@ -52,7 +52,8 @@ export async function placeBidAction(
   const closeAt = effectiveEndAt(lot);
   if (now >= closeAt) return { error: "CLOSED" };
   if (amountCents < lot.minimumBidCents) return { error: "MINIMUM" };
-  if (user.company?.bidLimitCents && amountCents > user.company.bidLimitCents) {
+  const bidLimitCents = user.company?.bidLimitCents;
+  if (bidLimitCents != null && amountCents > bidLimitCents) {
     return { error: "LIMIT" };
   }
 
