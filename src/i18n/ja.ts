@@ -565,6 +565,8 @@ export const ja = {
     terms: "利用規約",
     agreeTerms: "利用規約に同意します",
     submitApplication: "仮登録を申請する",
+    yourLoginId: "あなたのログインID",
+    yourLoginIdHint: "次回からこのIDでログインします。控えておいてください。",
     doneTitle: "仮登録を受け付けました",
     doneLead: "提出書類を確認のうえ、審査結果をメールでご連絡します。審査完了までは入札いただけません。",
     statusTitle: "審査ステータス",
