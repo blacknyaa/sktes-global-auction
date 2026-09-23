@@ -30,6 +30,7 @@ export default async function MfaPage() {
           verify: dict.auth.verify,
           invalid: dict.auth.mfaInvalid,
           expired: dict.auth.mfaExpired,
+          locked: dict.auth.accountLocked,
         }}
       />
     </AuthShell>
