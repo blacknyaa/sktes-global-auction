@@ -142,6 +142,12 @@ const TEMPLATES: Record<TemplateKey, Record<Locale, Template>> = {
   },
 };
 
+const NOT_RECORDED: Record<Locale, string> = {
+  ja: "（ご本人あてのリンクは、安全のため記録していません）",
+  en: "(The personal link is not recorded, for security.)",
+  zh: "（为安全起见，本人专用链接未记录。）",
+};
+
 export async function notify(input: {
   userId?: string | null;
   toAddress: string;
@@ -149,12 +155,24 @@ export async function notify(input: {
   locale?: Locale;
   channel?: NotificationChannel;
   extra?: string;
+  /**
+   * Appended to the message that is sent but never written to the outbox,
+   * which admins can read. Anything that grants access on its own - a reset
+   * link, for instance - belongs here, not in `extra`. A delivery adapter
+   * must add it to the outgoing message itself.
+   */
+  unrecordedExtra?: string;
   relatedType?: string;
   relatedId?: string;
 }): Promise<void> {
   const locale = (input.locale ?? "ja") as Locale;
   const tpl = TEMPLATES[input.templateKey][locale];
-  const body = input.extra ? `${tpl.body}\n\n${input.extra}` : tpl.body;
+  const recorded = [
+    tpl.body,
+    input.extra,
+    input.unrecordedExtra ? NOT_RECORDED[locale] : undefined,
+  ].filter(Boolean);
+  const body = recorded.join("\n\n");
 
   await prisma.notification.create({
     data: {
