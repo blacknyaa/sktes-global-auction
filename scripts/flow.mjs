@@ -549,6 +549,35 @@ try {
       .catch(() => null);
     log("再設定リンクが発行される", Boolean(resetLink));
 
+    // Holding down the button must stop reaching the account's owner. A
+    // different account is used so the reset above keeps its allowance.
+    {
+      let linksIssued = 0;
+      for (let i = 0; i < 5; i++) {
+        await page.goto(`${BASE}/forgot-password`, { waitUntil: "networkidle" });
+        await page.fill('input[name="email"]', "buyer2@buyer-demo.com");
+        await act(page, page.locator(String.raw`button[type="submit"]`).first());
+        const got = await page
+          .locator('a[href^="/reset-password?token="]')
+          .first()
+          .getAttribute("href")
+          .catch(() => null);
+        if (got) linksIssued++;
+        // The answer on screen must not say which of the two happened.
+        if (i === 4) {
+          log(
+            "上限に達しても画面の文言は変わらない",
+            (await page.locator("text=お送りしました").count()) > 0
+          );
+        }
+      }
+      log(
+        "再設定の申請を繰り返しても発行は上限で止まる",
+        linksIssued === 3,
+        `5回申請して ${linksIssued} 件発行`
+      );
+    }
+
     if (resetLink) {
       await page.goto(BASE + resetLink, { waitUntil: "networkidle" });
       await page.fill('input[name="password"]', "short");
