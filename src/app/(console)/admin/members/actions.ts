@@ -43,12 +43,14 @@ export async function setMemberStatusAction(formData: FormData): Promise<void> {
   });
   if (!company) return;
 
-  const bidLimitCents =
-    status === "PROVISIONAL" && rawLimit
-      ? Math.max(0, Math.round(Number(rawLimit) * 100))
-      : status === "APPROVED"
-        ? null
-        : company.bidLimitCents;
+  let bidLimitCents = company.bidLimitCents;
+  if (status === "PROVISIONAL" && rawLimit) {
+    const dollars = Number(rawLimit);
+    if (!Number.isFinite(dollars) || dollars < 0) return;
+    bidLimitCents = Math.round(dollars * 100);
+  } else if (status === "APPROVED") {
+    bidLimitCents = null;
+  }
 
   await prisma.company.update({
     where: { id: companyId },
