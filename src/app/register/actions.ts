@@ -125,56 +125,89 @@ export async function registerAction(
     .map(String)
     .filter(Boolean);
 
-  const company = await prisma.company.create({
-    data: {
-      type: "BUYER",
-      name: parsed.data.companyName,
-      nameEn: parsed.data.companyNameEn,
-      countryCode: parsed.data.countryCode,
-      corporateNumber: parsed.data.corporateNumber || null,
-      contactName: parsed.data.contactName,
-      contactEmail: parsed.data.contactEmail,
-      contactPhone: parsed.data.contactPhone,
-      hqAddress: parsed.data.hqAddress,
-      branchAddress: parsed.data.branchAddress || null,
-      exportDestinations: JSON.stringify(exportDestinations),
-      hasImportLicense: parsed.data.hasImportLicense === "yes",
-      antiqueLicenseNo: isJapan ? parsed.data.antiqueLicenseNo : null,
-      status: "PENDING",
-      termsAcceptedAt: new Date(),
-      appliedAt: new Date(),
-    },
-  });
+  const passwordHash = await hashPassword(parsed.data.password);
 
-  for (const up of uploads) {
-    const stored = await saveUpload(up.file, `documents/${company.id}`, up.mimeType);
-    await prisma.companyDocument.create({
-      data: {
-        companyId: company.id,
-        kind: up.kind,
-        fileName: stored.fileName,
-        mimeType: stored.mimeType,
-        sizeBytes: stored.sizeBytes,
-        storageKey: stored.storageKey,
-        status: "PENDING",
+  // The company, its documents and its user stand or fall together. The
+  // duplicate checks above ran before any of this, so two people registering
+  // the same ID at once both pass them; without a transaction the loser's
+  // company and uploaded documents would stay behind, belonging to no one.
+  let company, user;
+  try {
+    ({ company, user } = await prisma.$transaction(
+      async (tx) => {
+        const company = await tx.company.create({
+          data: {
+            type: "BUYER",
+            name: parsed.data.companyName,
+            nameEn: parsed.data.companyNameEn,
+            countryCode: parsed.data.countryCode,
+            corporateNumber: parsed.data.corporateNumber || null,
+            contactName: parsed.data.contactName,
+            contactEmail: parsed.data.contactEmail,
+            contactPhone: parsed.data.contactPhone,
+            hqAddress: parsed.data.hqAddress,
+            branchAddress: parsed.data.branchAddress || null,
+            exportDestinations: JSON.stringify(exportDestinations),
+            hasImportLicense: parsed.data.hasImportLicense === "yes",
+            antiqueLicenseNo: isJapan ? parsed.data.antiqueLicenseNo : null,
+            status: "PENDING",
+            termsAcceptedAt: new Date(),
+            appliedAt: new Date(),
+          },
+        });
+
+        for (const up of uploads) {
+          const stored = await saveUpload(
+            up.file,
+            `documents/${company.id}`,
+            up.mimeType,
+            tx
+          );
+          await tx.companyDocument.create({
+            data: {
+              companyId: company.id,
+              kind: up.kind,
+              fileName: stored.fileName,
+              mimeType: stored.mimeType,
+              sizeBytes: stored.sizeBytes,
+              storageKey: stored.storageKey,
+              status: "PENDING",
+            },
+          });
+        }
+
+        const user = await tx.user.create({
+          data: {
+            companyId: company.id,
+            email: parsed.data.contactEmail,
+            loginId: parsed.data.loginId,
+            passwordHash,
+            name: parsed.data.contactName,
+            phone: parsed.data.contactPhone,
+            role: "BIDDER",
+            locale: isJapan
+              ? "ja"
+              : ["CN", "TW", "HK"].includes(parsed.data.countryCode)
+                ? "zh"
+                : "en",
+            timezone: country.timezone,
+            status: "ACTIVE",
+          },
+        });
+        return { company, user };
       },
-    });
+      // Up to four 10 MB documents go in with the rows.
+      { timeout: 30_000 }
+    ));
+  } catch (e) {
+    const err = e as { code?: string; meta?: { target?: unknown } };
+    if (err.code === "P2002") {
+      return String(err.meta?.target ?? "").includes("loginId")
+        ? { error: dict.member.loginIdTaken, field: "loginId" }
+        : { error: "このメールアドレスはすでに登録されています。" };
+    }
+    throw e;
   }
-
-  const user = await prisma.user.create({
-    data: {
-      companyId: company.id,
-      email: parsed.data.contactEmail,
-      loginId: parsed.data.loginId,
-      passwordHash: await hashPassword(parsed.data.password),
-      name: parsed.data.contactName,
-      phone: parsed.data.contactPhone,
-      role: "BIDDER",
-      locale: isJapan ? "ja" : ["CN", "TW", "HK"].includes(parsed.data.countryCode) ? "zh" : "en",
-      timezone: country.timezone,
-      status: "ACTIVE",
-    },
-  });
 
   await notify({
     userId: user.id,
