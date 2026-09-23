@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "verify:reset-token": "node --env-file=.env --import tsx scripts/verify-reset-token.ts",
     "verify:seal": "node --env-file=.env --import tsx scripts/verify-seal.ts",
+    "verify:totp-replay": "node --env-file-if-exists=.env --import tsx scripts/verify-totp-replay.ts",
     "e2e": "node scripts/e2e.mjs",
     "db:use-postgres": "node scripts/switch-datasource.mjs postgresql",
     "db:use-sqlite": "node scripts/switch-datasource.mjs sqlite",
@@ -21,7 +22,7 @@
     "audit": "node scripts/audit.mjs",
     "rules": "node scripts/rules.mjs",
     "manual": "node scripts/build-manual.mjs",
-    "verify:all": "npm run db:seed && npm run e2e && npm run audit && npm run flow && npm run rules && npm run concurrency && npm run verify:reset-token && npm run verify:seal",
+    "verify:all": "npm run db:seed && npm run e2e && npm run audit && npm run flow && npm run rules && npm run concurrency && npm run verify:reset-token && npm run verify:seal && npm run verify:totp-replay",
     "concurrency": "node scripts/concurrency.mjs",
     "demo:reset": "node scripts/reset-demo.mjs"
   },
