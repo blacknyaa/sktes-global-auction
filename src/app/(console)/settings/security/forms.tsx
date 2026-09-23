@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   changePasswordAction,
+  disableMfaAction,
   enableMfaAction,
   type SecurityState,
 } from "./actions";
@@ -10,6 +11,56 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 function Submit({ label, variant = "btn-primary" }: { label: string; variant?: string }) {
   return <SubmitButton className={variant}>{label}</SubmitButton>;
+}
+
+export function DisableMfaForm({
+  labels,
+}: {
+  labels: {
+    password: string;
+    disable: string;
+    confirm: string;
+    wrongPassword: string;
+    disabled: string;
+    processing: string;
+  };
+}) {
+  const [state, action] = useActionState<SecurityState, FormData>(
+    disableMfaAction,
+    {}
+  );
+  return (
+    <form action={action} className="mt-5 flex flex-wrap items-end gap-3">
+      <div>
+        <label className="label" htmlFor="disable-mfa-password">
+          {labels.password}
+        </label>
+        <input
+          id="disable-mfa-password"
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          className="input w-56"
+        />
+      </div>
+      <SubmitButton
+        className="btn-danger"
+        confirm={labels.confirm}
+        pendingLabel={labels.processing}
+      >
+        {labels.disable}
+      </SubmitButton>
+      {state.error === "CURRENT" && (
+        <p className="w-full text-sm font-medium text-danger">
+          {labels.wrongPassword}
+        </p>
+      )}
+      {state.ok && (
+        <p className="w-full text-sm font-medium text-success">{labels.disabled}</p>
+      )}
+    </form>
+  );
 }
 
 export function EnableMfaForm({
