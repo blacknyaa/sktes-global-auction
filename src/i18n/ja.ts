@@ -518,7 +518,7 @@ export const ja = {
     mfaManual: "QRコードを読み取れない場合は、次のキーを手入力してください。",
     mfaEnable: "MFAを有効にする",
     mfaDisable: "MFAを無効にする",
-    confirmDisableMfa: "多要素認証を無効にします。パスワードだけでログインできる状態になります。よろしいですか。",
+    confirmDisableMfa: "多要素認証を無効にします。現在のパスワードと認証アプリのコードが必要です。無効にするとパスワードだけでログインできる状態になります。よろしいですか。",
     confirmRevokeSessions: "他の端末のセッションをすべて破棄します。よろしいですか。",
     demoResetDone: "デモデータを初期状態に戻しました。デモアカウントで再度ログインしてください。",
     mfaOn: "有効",

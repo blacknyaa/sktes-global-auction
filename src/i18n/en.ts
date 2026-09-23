@@ -519,7 +519,7 @@ export const en: Dictionary = {
     mfaManual: "If you cannot scan, enter this key by hand.",
     mfaEnable: "Enable MFA",
     mfaDisable: "Disable MFA",
-    confirmDisableMfa: "Turn off multi-factor authentication? A password alone will then be enough to sign in.",
+    confirmDisableMfa: "Turn off multi-factor authentication? You must enter your current password and authenticator code. A password alone will then be enough to sign in.",
     confirmRevokeSessions: "Sign out every other device?",
     demoResetDone: "The demo data has been reset. Please sign in again with a demo account.",
     mfaOn: "Enabled",

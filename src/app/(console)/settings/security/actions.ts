@@ -56,11 +56,27 @@ export async function enableMfaAction(
   return { ok: "ENABLED" };
 }
 
-export async function disableMfaAction(): Promise<void> {
+export async function disableMfaAction(
+  _prev: SecurityState,
+  formData: FormData
+): Promise<SecurityState> {
   const user = await requireUser();
+  const password = String(formData.get("password") ?? "");
+  const code = String(formData.get("code") ?? "");
+  const row = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!row?.mfaEnabled || !row.mfaSecret) return { error: "SETUP" };
+  if (!(await verifyPassword(password, row.passwordHash))) {
+    return { error: "CURRENT" };
+  }
+
+  const step = matchTotpStep(row.mfaSecret, code);
+  if (step === null || !(await claimTotpStep(user.id, step))) {
+    return { error: "INVALID" };
+  }
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { mfaEnabled: false, mfaSecret: null },
+    data: { mfaEnabled: false, mfaSecret: null, mfaLastStep: null },
   });
   await writeAudit({
     actorUserId: user.id,
@@ -69,6 +85,7 @@ export async function disableMfaAction(): Promise<void> {
     summary: `${user.email} が多要素認証を無効にしました`,
   });
   revalidatePath("/settings/security");
+  return { ok: "DISABLED" };
 }
 
 export async function changePasswordAction(

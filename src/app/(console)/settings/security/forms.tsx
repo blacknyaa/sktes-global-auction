@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   changePasswordAction,
+  disableMfaAction,
   enableMfaAction,
   type SecurityState,
 } from "./actions";
@@ -10,6 +11,76 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 function Submit({ label, variant = "btn-primary" }: { label: string; variant?: string }) {
   return <SubmitButton className={variant}>{label}</SubmitButton>;
+}
+
+export function DisableMfaForm({
+  labels,
+}: {
+  labels: {
+    password: string;
+    code: string;
+    disable: string;
+    confirm: string;
+    wrongPassword: string;
+    invalidCode: string;
+    disabled: string;
+    processing: string;
+  };
+}) {
+  const [state, action] = useActionState<SecurityState, FormData>(
+    disableMfaAction,
+    {}
+  );
+  return (
+    <form action={action} className="mt-5 space-y-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="label" htmlFor="disable-mfa-password">
+            {labels.password}
+          </label>
+          <input
+            id="disable-mfa-password"
+            name="password"
+            type="password"
+            required
+            autoComplete="current-password"
+            className="input w-56"
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="disable-mfa-code">
+            {labels.code}
+          </label>
+          <input
+            id="disable-mfa-code"
+            name="code"
+            inputMode="numeric"
+            maxLength={6}
+            required
+            className="input tnum w-36 text-center text-lg font-bold tracking-[0.3em]"
+            placeholder="000000"
+            autoComplete="one-time-code"
+          />
+        </div>
+        <SubmitButton
+          className="btn-danger"
+          confirm={labels.confirm}
+          pendingLabel={labels.processing}
+        >
+          {labels.disable}
+        </SubmitButton>
+      </div>
+      {state.error === "CURRENT" && (
+        <p className="text-sm font-medium text-danger">{labels.wrongPassword}</p>
+      )}
+      {state.error === "INVALID" && (
+        <p className="text-sm font-medium text-danger">{labels.invalidCode}</p>
+      )}
+      {state.ok && (
+        <p className="text-sm font-medium text-success">{labels.disabled}</p>
+      )}
+    </form>
+  );
 }
 
 export function EnableMfaForm({
