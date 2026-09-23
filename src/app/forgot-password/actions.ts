@@ -25,6 +25,18 @@ export async function forgotAction(
   if (!user) return { sent: true };
 
   const token = await createPasswordResetToken(user.id);
+  if (!token) {
+    // Already sent its allowance for the hour. The screen says the same thing
+    // as a successful request, so holding down the button tells an attacker
+    // nothing and stops reaching the account's owner.
+    await writeAudit({
+      actorUserId: user.id,
+      actorLabel: user.name,
+      action: "PASSWORD_RESET",
+      summary: `${user.email} の再設定申請が続いたため、送信を見送りました`,
+    });
+    return { sent: true };
+  }
   const link = `/reset-password?token=${token}`;
 
   await notify({

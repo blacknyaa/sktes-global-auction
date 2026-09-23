@@ -331,7 +331,28 @@ export async function clearMfaTicket(): Promise<void> {
 
 // --- password reset --------------------------------------------------------
 
-export async function createPasswordResetToken(userId: string): Promise<string> {
+/** How many reset links one account may be sent, and over what period. */
+export const RESET_REQUESTS_PER_WINDOW = 3;
+export const RESET_WINDOW_MINUTES = 60;
+
+/**
+ * Issues a reset link, or returns null when this account has already been
+ * sent its allowance recently.
+ *
+ * Without a ceiling, anyone who knows an address can hold down the button:
+ * the owner is mailed a reset link every time, and a row is stored for each.
+ * Neither the caller nor the screen is told which happened, so this cannot be
+ * used to find out whether an address is registered.
+ */
+export async function createPasswordResetToken(
+  userId: string
+): Promise<string | null> {
+  const since = new Date(Date.now() - RESET_WINDOW_MINUTES * 60_000);
+  const recent = await prisma.passwordResetToken.count({
+    where: { userId, createdAt: { gte: since } },
+  });
+  if (recent >= RESET_REQUESTS_PER_WINDOW) return null;
+
   const token = randomBytes(24).toString("hex");
   await prisma.passwordResetToken.create({
     data: {
