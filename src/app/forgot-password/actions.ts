@@ -9,6 +9,9 @@ import type { Locale } from "@/lib/constants";
 
 export type ForgotState = { sent?: boolean; demoLink?: string; error?: string };
 
+/** Unused links one account may have outstanding from the last hour. */
+const MAX_OPEN_LINKS_PER_HOUR = 3;
+
 export async function forgotAction(
   _prev: ForgotState,
   formData: FormData
@@ -23,6 +26,18 @@ export async function forgotAction(
 
   // The response is identical whether or not the address exists.
   if (!user) return { sent: true };
+
+  // Anyone can type a stranger's address here, and each request mails them.
+  // Links that were actually used do not count, so a person who resets and
+  // later forgets again is never held back by their own earlier reset.
+  const open = await prisma.passwordResetToken.count({
+    where: {
+      userId: user.id,
+      usedAt: null,
+      createdAt: { gt: new Date(Date.now() - 60 * 60_000) },
+    },
+  });
+  if (open >= MAX_OPEN_LINKS_PER_HOUR) return { sent: true };
 
   const token = await createPasswordResetToken(user.id);
   const link = `/reset-password?token=${token}`;
