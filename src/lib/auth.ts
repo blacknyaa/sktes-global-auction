@@ -367,25 +367,31 @@ export async function consumePasswordResetToken(
   });
   if (!row || row.usedAt || row.expiresAt < new Date()) return false;
 
-  await prisma.$transaction([
-    prisma.user.update({
+  const passwordHash = await hashPassword(newPassword);
+  return prisma.$transaction(async (tx) => {
+    // The check above is only a fast path. Claiming the token is the real
+    // check: two requests racing with the same link both pass the read, but
+    // only one of them can flip usedAt from null.
+    const { count } = await tx.passwordResetToken.updateMany({
+      where: { id: row.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() },
+    });
+    if (count === 0) return false;
+
+    await tx.user.update({
       where: { id: row.userId },
       data: {
-        passwordHash: await hashPassword(newPassword),
+        passwordHash,
         failedLoginCount: 0,
         lockedUntil: null,
         status: "ACTIVE",
       },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: row.id },
-      data: { usedAt: new Date() },
-    }),
+    });
     // Every other session is dropped, because a password reset is exactly the
     // moment you want any hijacked session to stop working.
-    prisma.session.deleteMany({ where: { userId: row.userId } }),
-  ]);
-  return true;
+    await tx.session.deleteMany({ where: { userId: row.userId } });
+    return true;
+  });
 }
 
 export { sha256 };
