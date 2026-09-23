@@ -190,18 +190,26 @@ export async function createLotAction(
 
   const storageKey = String(formData.get("storageKey") ?? "");
   const fileName = String(formData.get("fileName") ?? "");
-  if (storageKey) {
-    await prisma.lotAttachment.create({
-      data: {
-        lotId: lot.id,
-        kind: "EXCEL",
-        fileName: fileName || `${lotNumber}.xlsx`,
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        sizeBytes: 0,
-        storageKey,
-      },
+  const expectedPrefix = `manifests/${user.companyId}/`;
+  if (storageKey.startsWith(expectedPrefix)) {
+    const blob = await prisma.storedBlob.findUnique({
+      where: { storageKey },
+      select: { sizeBytes: true, mimeType: true },
     });
+    if (blob) {
+      await prisma.lotAttachment.create({
+        data: {
+          lotId: lot.id,
+          kind: "EXCEL",
+          fileName: fileName || `${lotNumber}.xlsx`,
+          mimeType:
+            blob.mimeType ||
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          sizeBytes: blob.sizeBytes,
+          storageKey,
+        },
+      });
+    }
   }
 
   await writeAudit({
