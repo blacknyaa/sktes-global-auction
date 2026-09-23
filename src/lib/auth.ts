@@ -309,6 +309,22 @@ export async function recordFailedLogin(user: {
   return lockedUntil;
 }
 
+/**
+ * Records that a TOTP step has been used. Returns false when that step or a
+ * later one was already accepted, so each code signs someone in at most once
+ * even when two requests carrying it arrive together.
+ */
+export async function claimTotpStep(userId: string, step: number): Promise<boolean> {
+  const { count } = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      OR: [{ mfaLastStep: null }, { mfaLastStep: { lt: step } }],
+    },
+    data: { mfaLastStep: step },
+  });
+  return count === 1;
+}
+
 // --- the short-lived ticket between password and MFA -----------------------
 
 export async function issueMfaTicket(userId: string): Promise<void> {

@@ -5,13 +5,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
   attemptLogin,
+  claimTotpStep,
   clearMfaTicket,
   createSession,
   issueMfaTicket,
   readMfaTicket,
   recordFailedLogin,
 } from "@/lib/auth";
-import { verifyTotp } from "@/lib/totp";
+import { matchTotpStep } from "@/lib/totp";
 import { writeAudit } from "@/lib/audit";
 
 export type LoginState = { error?: string; lockedUntil?: string };
@@ -80,7 +81,8 @@ export async function mfaAction(
     return { error: "LOCKED" };
   }
 
-  if (!verifyTotp(user.mfaSecret, code)) {
+  const step = matchTotpStep(user.mfaSecret, code);
+  if (step === null || !(await claimTotpStep(user.id, step))) {
     const lockedUntil = await recordFailedLogin(user);
     await writeAudit({
       actorUserId: user.id,
@@ -88,7 +90,9 @@ export async function mfaAction(
       action: "LOGIN_FAILED",
       summary: lockedUntil
         ? `${user.loginId ?? user.email} のMFAコードが続けて一致せず、アカウントをロックしました`
-        : `${user.loginId ?? user.email} のMFAコードが一致しませんでした`,
+        : step === null
+          ? `${user.loginId ?? user.email} のMFAコードが一致しませんでした`
+          : `${user.loginId ?? user.email} に使用済みのMFAコードが送られました`,
     });
     if (lockedUntil) {
       await clearMfaTicket();
