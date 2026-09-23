@@ -385,21 +385,26 @@ export const RESET_WINDOW_MINUTES = 60;
 export async function createPasswordResetToken(
   userId: string
 ): Promise<string | null> {
-  const since = new Date(Date.now() - RESET_WINDOW_MINUTES * 60_000);
-  const recent = await prisma.passwordResetToken.count({
-    where: { userId, createdAt: { gte: since } },
-  });
-  if (recent >= RESET_REQUESTS_PER_WINDOW) return null;
-
   const token = randomBytes(24).toString("hex");
-  await prisma.passwordResetToken.create({
-    data: {
-      userId,
-      tokenHash: sha256(token),
-      expiresAt: new Date(Date.now() + 60 * 60_000),
-    },
+  const since = new Date(Date.now() - RESET_WINDOW_MINUTES * 60_000);
+
+  // Count and insert share one transaction so two requests that both see
+  // "under the limit" cannot each create a token and blow past the ceiling.
+  return prisma.$transaction(async (tx) => {
+    const recent = await tx.passwordResetToken.count({
+      where: { userId, createdAt: { gte: since } },
+    });
+    if (recent >= RESET_REQUESTS_PER_WINDOW) return null;
+
+    await tx.passwordResetToken.create({
+      data: {
+        userId,
+        tokenHash: sha256(token),
+        expiresAt: new Date(Date.now() + 60 * 60_000),
+      },
+    });
+    return token;
   });
-  return token;
 }
 
 export async function consumePasswordResetToken(
