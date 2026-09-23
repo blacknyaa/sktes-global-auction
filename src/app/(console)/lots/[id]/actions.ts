@@ -25,8 +25,9 @@ export type BidState = { ok?: string; error?: string };
  *  1. The amount is encrypted before it is written. It never exists as a
  *     readable column while the lot is open.
  *  2. A late bid on a soft-close lot pushes the deadline out inside the same
- *     transaction as the bid itself. If those two were separate writes, two
- *     bidders arriving in the last second could each read the old deadline and
+ *     transaction as the bid itself, after re-reading the lot. If the new end
+ *     were computed from a snapshot taken before the transaction, two bidders
+ *     arriving in the last second could each extend from the same closeAt and
  *     one extension would be lost.
  */
 export async function placeBidAction(
@@ -60,51 +61,67 @@ export async function placeBidAction(
   const sealed = sealBid(lot.sealPublicKey, amountCents, now);
   const ip = await clientIp();
 
-  // Soft close: a bid inside the trigger window pushes the deadline out.
-  const msLeft = closeAt.getTime() - now.getTime();
-  const triggerMs = lot.extensionTriggerMin * 60_000;
-  const extends_ = lot.extensionEnabled && msLeft <= triggerMs;
-  const newEnd = extends_
-    ? new Date(closeAt.getTime() + lot.extensionMinutes * 60_000)
-    : null;
+  // Deadline, soft-close extension, supersede, and create must share one
+  // transaction. Computing the new endAt from a pre-tx snapshot lets two late
+  // bids each push from the same closeAt and one extension is lost.
+  let sequence: number;
+  let extended = false;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const fresh = await tx.lot.findUnique({ where: { id: lotId } });
+      if (!fresh || fresh.status !== "OPEN" || !fresh.sealPublicKey) {
+        throw new BidClosedError();
+      }
+      const liveCloseAt = effectiveEndAt(fresh);
+      if (now >= liveCloseAt) throw new BidClosedError();
 
-  // Find, supersede, and create inside one transaction so two requests from
-  // the same company cannot both leave a SEALED row behind.
-  const sequence = await prisma.$transaction(async (tx) => {
-    const previous = await tx.bid.findFirst({
-      where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
-      orderBy: { sequence: "desc" },
-    });
-    await tx.bid.updateMany({
-      where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
-      data: { status: "SUPERSEDED" },
-    });
-    const nextSequence = (previous?.sequence ?? 0) + 1;
-    await tx.bid.create({
-      data: {
-        lotId,
-        bidderCompanyId: user.companyId!,
-        userId: user.id,
-        sequence: nextSequence,
-        ciphertext: sealed.ciphertext,
-        commitmentHash: sealed.commitmentHash,
-        nonce: "", // withheld until opening
-        status: "SEALED",
-        submittedAt: now,
-        ip,
-      },
-    });
-    if (newEnd) {
-      await tx.lot.update({
-        where: { id: lotId },
+      const msLeft = liveCloseAt.getTime() - now.getTime();
+      const triggerMs = fresh.extensionTriggerMin * 60_000;
+      const newEnd =
+        fresh.extensionEnabled && msLeft <= triggerMs
+          ? new Date(liveCloseAt.getTime() + fresh.extensionMinutes * 60_000)
+          : null;
+
+      const previous = await tx.bid.findFirst({
+        where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
+        orderBy: { sequence: "desc" },
+      });
+      await tx.bid.updateMany({
+        where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
+        data: { status: "SUPERSEDED" },
+      });
+      const nextSequence = (previous?.sequence ?? 0) + 1;
+      await tx.bid.create({
         data: {
-          extendedUntil: newEnd,
-          extensionCount: { increment: 1 },
+          lotId,
+          bidderCompanyId: user.companyId!,
+          userId: user.id,
+          sequence: nextSequence,
+          ciphertext: sealed.ciphertext,
+          commitmentHash: sealed.commitmentHash,
+          nonce: "", // withheld until opening
+          status: "SEALED",
+          submittedAt: now,
+          ip,
         },
       });
-    }
-    return nextSequence;
-  });
+      if (newEnd) {
+        await tx.lot.update({
+          where: { id: lotId },
+          data: {
+            extendedUntil: newEnd,
+            extensionCount: { increment: 1 },
+          },
+        });
+      }
+      return { sequence: nextSequence, extended: Boolean(newEnd) };
+    });
+    sequence = result.sequence;
+    extended = result.extended;
+  } catch (err) {
+    if (err instanceof BidClosedError) return { error: "CLOSED" };
+    throw err;
+  }
 
   await writeAudit({
     actorUserId: user.id,
@@ -116,7 +133,7 @@ export async function placeBidAction(
     detail: {
       commitmentHash: sealed.commitmentHash,
       sequence,
-      softCloseExtended: Boolean(newEnd),
+      softCloseExtended: extended,
     },
   });
 
@@ -131,7 +148,14 @@ export async function placeBidAction(
 
   revalidatePath(`/lots/${lotId}`);
   revalidatePath("/bids");
-  return { ok: newEnd ? "EXTENDED" : "SUBMITTED" };
+  return { ok: extended ? "EXTENDED" : "SUBMITTED" };
+}
+
+class BidClosedError extends Error {
+  constructor() {
+    super("CLOSED");
+    this.name = "BidClosedError";
+  }
 }
 
 export async function cancelBidAction(
