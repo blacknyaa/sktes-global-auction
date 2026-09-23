@@ -32,7 +32,7 @@ export async function forgotAction(
     toAddress: user.email,
     templateKey: "password.reset",
     locale: user.locale as Locale,
-    extra: link,
+    unrecordedExtra: link,
   });
   await writeAudit({
     actorUserId: user.id,
