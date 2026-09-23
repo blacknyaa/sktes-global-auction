@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { readStored } from "@/lib/storage";
+import { contentDisposition, readStored } from "@/lib/storage";
 import { writeAudit } from "@/lib/audit";
 
 
@@ -46,7 +46,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "content-type": doc.mimeType,
-      "content-disposition": `inline; filename="${encodeURIComponent(doc.fileName)}"`,
+      "content-disposition": contentDisposition(doc.fileName, "inline"),
       "cache-control": "private, no-store",
     },
   });

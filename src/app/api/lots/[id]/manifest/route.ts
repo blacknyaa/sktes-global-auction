@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { buildManifestWorkbook } from "@/lib/manifest";
+import { contentDisposition } from "@/lib/storage";
 
 
 // Serves per-request, authorised content; never cache or prerender it.
@@ -51,7 +52,7 @@ export async function GET(
     headers: {
       "content-type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition": `attachment; filename="${lot.lotNumber}_manifest.xlsx"`,
+      "content-disposition": contentDisposition(`${lot.lotNumber}_manifest.xlsx`),
       "cache-control": "private, no-store",
     },
   });
