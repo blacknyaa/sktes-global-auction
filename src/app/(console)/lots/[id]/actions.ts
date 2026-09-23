@@ -67,24 +67,24 @@ export async function placeBidAction(
     ? new Date(closeAt.getTime() + lot.extensionMinutes * 60_000)
     : null;
 
-  const previous = await prisma.bid.findFirst({
-    where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
-    orderBy: { sequence: "desc" },
-  });
-
-  await prisma.$transaction(async (tx) => {
-    if (previous) {
-      await tx.bid.update({
-        where: { id: previous.id },
-        data: { status: "SUPERSEDED" },
-      });
-    }
+  // Find, supersede, and create inside one transaction so two requests from
+  // the same company cannot both leave a SEALED row behind.
+  const sequence = await prisma.$transaction(async (tx) => {
+    const previous = await tx.bid.findFirst({
+      where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
+      orderBy: { sequence: "desc" },
+    });
+    await tx.bid.updateMany({
+      where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
+      data: { status: "SUPERSEDED" },
+    });
+    const nextSequence = (previous?.sequence ?? 0) + 1;
     await tx.bid.create({
       data: {
         lotId,
         bidderCompanyId: user.companyId!,
         userId: user.id,
-        sequence: (previous?.sequence ?? 0) + 1,
+        sequence: nextSequence,
         ciphertext: sealed.ciphertext,
         commitmentHash: sealed.commitmentHash,
         nonce: "", // withheld until opening
@@ -102,18 +102,19 @@ export async function placeBidAction(
         },
       });
     }
+    return nextSequence;
   });
 
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.company?.name ?? user.name,
-    action: previous ? "BID_AMEND" : "BID_SUBMIT",
+    action: sequence > 1 ? "BID_AMEND" : "BID_SUBMIT",
     targetType: "Lot",
     targetId: lotId,
     summary: `${lot.lotNumber} へ封印入札を送信（金額は暗号化して保管）`,
     detail: {
       commitmentHash: sealed.commitmentHash,
-      sequence: (previous?.sequence ?? 0) + 1,
+      sequence,
       softCloseExtended: Boolean(newEnd),
     },
   });
