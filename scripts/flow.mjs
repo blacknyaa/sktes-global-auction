@@ -74,6 +74,9 @@ const PDF = Buffer.from(
 );
 const pdfPath = path.join(TMP, "registry.pdf");
 writeFileSync(pdfPath, PDF);
+// A name that has to survive the trip back out as a download.
+const jaPdfPath = path.join(TMP, "登記事項証明書 2026.pdf");
+writeFileSync(jaPdfPath, PDF);
 
 const browser = await chromium.launch();
 const ctx = async () => {
@@ -181,7 +184,7 @@ try {
     await page.locator('input[name="hasImportLicense"][value="yes"]').check();
     await page.click('button:has-text("次へ")');
 
-    await page.setInputFiles('input[name="doc_registry"]', pdfPath);
+    await page.setInputFiles('input[name="doc_registry"]', jaPdfPath);
     await page.setInputFiles('input[name="doc_id"]', pdfPath);
     const importField = page.locator('input[name="doc_import"]');
     if (await importField.count()) await importField.setInputFiles(pdfPath);
@@ -245,6 +248,18 @@ try {
         "アップロードした書類を取得できる",
         res.ok() && body.subarray(0, 4).toString() === "%PDF",
         `${res.status()} ${body.length}B`
+      );
+
+      // The name has to come back as it went in. A quoted filename= is not
+      // percent-decoded by browsers, so a Japanese name sent that way lands
+      // on the disk as %E7%99%BB... - RFC 6266 adds filename* for this.
+      const cd = res.headers()["content-disposition"] ?? "";
+      log(
+        "書類のファイル名が元のまま保存される",
+        cd.includes("filename*=UTF-8''") &&
+          decodeURIComponent(cd.split("filename*=UTF-8''")[1] ?? "") ===
+            "登記事項証明書 2026.pdf",
+        cd
       );
 
       // provisional first, then full approval
