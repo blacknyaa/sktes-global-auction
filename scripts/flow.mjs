@@ -529,6 +529,47 @@ try {
           .catch(() => false));
       if (!replayRejected) await shot(page, "x-mfa-replay");
       log("一度使ったコードは、有効な間でも再び使えない", replayRejected);
+
+      // The replay attempt above left us on the challenge screen; get in with
+      // a fresh code before going near the settings.
+      await nextTotpStep();
+      await page.fill('input[name="code"]', totp(secret));
+      await Promise.all([
+        page.waitForURL(/\/dashboard/, { timeout: 30000 }),
+        page.locator('button[type="submit"]').click(),
+      ]);
+
+      // Switching the second factor off is the moment a stolen session would
+      // aim for, so it has to prove both the password and a live code.
+      await page.goto(`${BASE}/settings/security`, { waitUntil: "networkidle" });
+      const offCode = page.locator("#disable-mfa-code");
+      log("無効化には入力が要る", (await page.locator("#disable-mfa-password").count()) > 0 && (await offCode.count()) > 0);
+
+      await nextTotpStep();
+      await page.fill("#disable-mfa-password", "WrongPass2026");
+      await page.fill("#disable-mfa-code", totp(secret));
+      await act(page, page.locator("form:has(#disable-mfa-code) button[type=submit]").first());
+      log(
+        "パスワードが違えば無効化できない",
+        (await page.locator("#disable-mfa-code").count()) > 0
+      );
+
+      await page.fill("#disable-mfa-password", "FlowTest2026");
+      await page.fill("#disable-mfa-code", "000000");
+      await act(page, page.locator("form:has(#disable-mfa-code) button[type=submit]").first());
+      log(
+        "コードが違えば無効化できない",
+        (await page.locator("#disable-mfa-code").count()) > 0
+      );
+
+      await nextTotpStep();
+      await page.fill("#disable-mfa-password", "FlowTest2026");
+      await page.fill("#disable-mfa-code", totp(secret));
+      await act(page, page.locator("form:has(#disable-mfa-code) button[type=submit]").first());
+      log(
+        "両方そろえば無効にできる",
+        (await page.locator("#disable-mfa-code").count()) === 0
+      );
     }
     await c.close();
   }
