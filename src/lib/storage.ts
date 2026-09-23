@@ -43,8 +43,18 @@ export async function saveUpload(
   mimeType = file.type || "application/octet-stream",
   db: Prisma.TransactionClient = prisma
 ): Promise<StoredFile> {
-  const safeName = file.name.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
-  const storageKey = `${folder}/${randomUUID()}_${safeName}`;
+  // Two different things were being taken from one name. The key has to be
+  // plain ASCII, so it was scrubbed with \w - which throws away every
+  // Japanese character - and the scrubbed result was then also kept as the
+  // name shown to people and sent back on download. A file called
+  // 「登記事項証明書.pdf」 came back as 「_____.pdf」. They are separate now.
+  const displayName =
+    file.name
+      .replace(/[\u0000-\u001f\u007f/\\]/g, "_")
+      .trim()
+      .slice(0, 160) || "upload";
+  const keyName = displayName.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
+  const storageKey = `${folder}/${randomUUID()}_${keyName}`;
   const data = Buffer.from(await file.arrayBuffer());
 
   await db.storedBlob.create({
@@ -56,7 +66,12 @@ export async function saveUpload(
     },
   });
 
-  return { storageKey, fileName: safeName, mimeType, sizeBytes: data.byteLength };
+  return {
+    storageKey,
+    fileName: displayName,
+    mimeType,
+    sizeBytes: data.byteLength,
+  };
 }
 
 export async function readStored(key: string): Promise<Buffer | null> {
@@ -123,4 +138,29 @@ export function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
+ * Builds a Content-Disposition value that saves under the name the file was
+ * actually given.
+ *
+ * `filename=` is plain bytes: browsers do not decode percent escapes there, so
+ * a Japanese name written as `%E6%9B%B8...` is what lands on the disk. RFC 6266
+ * answers this with a second parameter, `filename*`, carrying the real name in
+ * UTF-8, and leaves `filename=` as the fallback for anything that predates it.
+ *
+ * Both parameters are stripped of quotes, backslashes and line breaks, so a
+ * stored name can never inject another header.
+ */
+export function contentDisposition(
+  fileName: string,
+  kind: "inline" | "attachment" = "attachment"
+): string {
+  const clean = fileName.replace(/[\r\n"\\]/g, "_").trim() || "download";
+
+  // The fallback keeps only what is safe to send unencoded; anything else
+  // becomes an underscore, so the name still resembles the original.
+  const ascii = clean.replace(/[^\x20-\x7E]/g, "_").replace(/_{2,}/g, "_");
+
+  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(clean)}`;
 }

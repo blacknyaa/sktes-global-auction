@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { buildTemplateWorkbook } from "@/lib/manifest";
+import { contentDisposition } from "@/lib/storage";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -11,8 +12,9 @@ export async function GET() {
     headers: {
       "content-type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition":
-        'attachment; filename="sktes_lot_manifest_template.xlsx"',
+      "content-disposition": contentDisposition(
+        "sktes_lot_manifest_template.xlsx"
+      ),
       "cache-control": "private, no-store",
     },
   });
