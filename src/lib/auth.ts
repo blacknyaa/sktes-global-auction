@@ -262,36 +262,51 @@ export async function attemptLogin(
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
-    const failed = user.failedLoginCount + 1;
-    const lock = failed >= MAX_FAILED_LOGINS;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginCount: lock ? 0 : failed,
-        lockedUntil: lock ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null,
-        status: lock ? "LOCKED" : user.status,
-      },
-    });
-    return lock
-      ? {
-          ok: false,
-          reason: "LOCKED",
-          lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60_000),
-        }
+    const lockedUntil = await recordFailedLogin(user);
+    return lockedUntil
+      ? { ok: false, reason: "LOCKED", lockedUntil }
       : { ok: false, reason: "INVALID" };
   }
 
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      failedLoginCount: 0,
-      lockedUntil: null,
+      // With MFA on, the password is only half of the sign-in. Resetting the
+      // counter here would let anyone holding the password re-enter it to
+      // earn fresh guesses at the code; it is reset once the code is right.
+      ...(user.mfaEnabled ? {} : { failedLoginCount: 0, lockedUntil: null }),
       status: user.status === "LOCKED" ? "ACTIVE" : user.status,
       lastLoginAt: new Date(),
     },
   });
 
   return { ok: true, userId: user.id, mfaRequired: user.mfaEnabled };
+}
+
+/**
+ * Counts one failed attempt, whether a wrong password or a wrong MFA code,
+ * and locks the account once the limit is reached. Returns the lock expiry
+ * when this attempt locked it.
+ */
+export async function recordFailedLogin(user: {
+  id: string;
+  status: string;
+  failedLoginCount: number;
+}): Promise<Date | null> {
+  const failed = user.failedLoginCount + 1;
+  const lockedUntil =
+    failed >= MAX_FAILED_LOGINS
+      ? new Date(Date.now() + LOCK_MINUTES * 60_000)
+      : null;
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      failedLoginCount: lockedUntil ? 0 : failed,
+      lockedUntil,
+      status: lockedUntil ? "LOCKED" : user.status,
+    },
+  });
+  return lockedUntil;
 }
 
 // --- the short-lived ticket between password and MFA -----------------------

@@ -9,6 +9,7 @@ import {
   createSession,
   issueMfaTicket,
   readMfaTicket,
+  recordFailedLogin,
 } from "@/lib/auth";
 import { verifyTotp } from "@/lib/totp";
 import { writeAudit } from "@/lib/audit";
@@ -74,13 +75,25 @@ export async function mfaAction(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user?.mfaSecret) return { error: "EXPIRED" };
 
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    await clearMfaTicket();
+    return { error: "LOCKED" };
+  }
+
   if (!verifyTotp(user.mfaSecret, code)) {
+    const lockedUntil = await recordFailedLogin(user);
     await writeAudit({
       actorUserId: user.id,
       actorLabel: user.name,
       action: "LOGIN_FAILED",
-      summary: `${user.loginId ?? user.email} のMFAコードが一致しませんでした`,
+      summary: lockedUntil
+        ? `${user.loginId ?? user.email} のMFAコードが続けて一致せず、アカウントをロックしました`
+        : `${user.loginId ?? user.email} のMFAコードが一致しませんでした`,
     });
+    if (lockedUntil) {
+      await clearMfaTicket();
+      return { error: "LOCKED" };
+    }
     return { error: "INVALID" };
   }
 
@@ -88,7 +101,7 @@ export async function mfaAction(
   await createSession(user.id);
   await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    data: { lastLoginAt: new Date(), failedLoginCount: 0, lockedUntil: null },
   });
   await writeAudit({
     actorUserId: user.id,

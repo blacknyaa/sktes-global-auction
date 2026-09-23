@@ -14,7 +14,13 @@ function Submit({ label }: { label: string }) {
 export function MfaForm({
   labels,
 }: {
-  labels: { code: string; verify: string; invalid: string; expired: string };
+  labels: {
+    code: string;
+    verify: string;
+    invalid: string;
+    expired: string;
+    locked: string;
+  };
 }) {
   const [state, action] = useActionState<MfaState, FormData>(mfaAction, {});
 
@@ -22,6 +28,7 @@ export function MfaForm({
     <form action={action} className="space-y-4">
       {state.error === "EXPIRED" && <FormError>{labels.expired}</FormError>}
       {state.error === "INVALID" && <FormError>{labels.invalid}</FormError>}
+      {state.error === "LOCKED" && <FormError>{labels.locked}</FormError>}
 
       <div>
         <label className="label" htmlFor="code">
