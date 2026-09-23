@@ -28,6 +28,11 @@ await page.locator('button:has-text("初期状態に戻す")').first().click();
 await page.waitForURL(/\/login/, { timeout: 180000 }).catch(() => {});
 
 const health = await (await page.request.get(`${BASE}/api/health`)).json();
-console.log("reset complete:", JSON.stringify(health.schema?.counts));
+// Record counts are only in the detailed report, which needs a session or
+// HEALTH_TOKEN; the reset has just signed us out.
+console.log(
+  "reset complete:",
+  JSON.stringify(health.schema?.counts ?? { healthy: health.healthy })
+);
 
 await browser.close();
