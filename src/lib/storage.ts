@@ -43,8 +43,13 @@ export async function saveUpload(
   mimeType = file.type || "application/octet-stream",
   db: Prisma.TransactionClient = prisma
 ): Promise<StoredFile> {
-  const safeName = file.name.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
-  const storageKey = `${folder}/${randomUUID()}_${safeName}`;
+  // The name shown to reviewers keeps its letters in any script; only the
+  // storage key is held to ASCII. `\w` alone is ASCII-only, and used here it
+  // turned every Japanese file name into underscores.
+  const safeName =
+    file.name.replace(/[^\p{L}\p{N}_.\-() ]+/gu, "_").slice(0, 120) || "file";
+  const keyName = safeName.replace(/[^\w.\-]+/g, "_");
+  const storageKey = `${folder}/${randomUUID()}_${keyName}`;
   const data = Buffer.from(await file.arrayBuffer());
 
   await db.storedBlob.create({
