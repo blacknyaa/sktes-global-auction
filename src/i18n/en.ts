@@ -388,6 +388,7 @@ export const en: Dictionary = {
     errNotApproved: "Your account is not fully approved, so bidding is unavailable.",
     errOwnLot: "You cannot bid on a lot your own company listed.",
     errAmount: "Enter a valid bid amount.",
+    errNoBid: "There is no sealed bid to withdraw.",
     bidsSealed: "Sealed bids",
     bidsRevealed: "Opened bids",
     openSeal: "Open the seal (deadline passed)",

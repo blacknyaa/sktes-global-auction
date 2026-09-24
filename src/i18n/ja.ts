@@ -387,6 +387,7 @@ export const ja = {
     errNotApproved: "本登録が完了していないため入札できません。",
     errOwnLot: "自社が出品したロットには入札できません。",
     errAmount: "入札金額を正しく入力してください。",
+    errNoBid: "取り消せる入札がありません。",
     bidsSealed: "封印中の入札",
     bidsRevealed: "開封済みの入札",
     openSeal: "締切につき封印を解除する",

@@ -608,6 +608,7 @@ export default async function LotDetailPage({
                     errors: {
                       NOT_APPROVED: dict.bid.errNotApproved,
                       AMOUNT: dict.bid.errAmount,
+                      NO_BID: dict.bid.errNoBid,
                       CLOSED: dict.bid.errClosed,
                       MINIMUM: dict.bid.errMinimum,
                       LIMIT: dict.bid.errLimit,
