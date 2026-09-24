@@ -245,10 +245,12 @@ export async function openSealAction(formData: FormData): Promise<void> {
       await writeAudit({
         actorUserId: user.id,
         actorLabel: user.name,
-        action: "ADMIN_ACTION",
+        // Sellers can hit this path; it is not an admin privilege.
+        action: "LOT_OPEN",
         targetType: "Lot",
         targetId: lotId,
         summary: `${lot.lotNumber} の早期開封が拒否されました（締切前）`,
+        detail: { refused: true, reason: "before_deadline" },
       });
       return;
     }
