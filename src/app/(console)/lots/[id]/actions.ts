@@ -286,7 +286,8 @@ export async function askQuestionAction(formData: FormData): Promise<void> {
     include: { createdBy: true },
   });
   if (!lot) return;
-  if (lot.status === "DRAFT" || lot.status === "CANCELLED") return;
+  // Q&A is for active bidding; closed or awarded lots keep a frozen record.
+  if (lot.status !== "OPEN" && lot.status !== "SCHEDULED") return;
   if (user.role !== "BIDDER") return;
 
   await prisma.question.create({
