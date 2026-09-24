@@ -59,30 +59,34 @@ export async function placeBidAction(
     return { error: "LIMIT" };
   }
 
-  const sealed = sealBid(lot.sealPublicKey, amountCents, now);
   const ip = await clientIp();
 
   // Deadline, soft-close extension, supersede, and create must share one
   // transaction. Computing the new endAt from a pre-tx snapshot lets two late
-  // bids each push from the same closeAt and one extension is lost.
+  // bids each push from the same closeAt and one extension is lost. The clock
+  // used for the close gate must be taken at write time too — a request that
+  // started before the deadline must not commit after it under load.
   let sequence: number;
   let extended = false;
+  let commitmentHash: string;
   try {
     const result = await prisma.$transaction(async (tx) => {
       const fresh = await tx.lot.findUnique({ where: { id: lotId } });
       if (!fresh || fresh.status !== "OPEN" || !fresh.sealPublicKey) {
         throw new BidClosedError();
       }
+      const liveNow = new Date();
       const liveCloseAt = effectiveEndAt(fresh);
-      if (now >= liveCloseAt) throw new BidClosedError();
+      if (liveNow >= liveCloseAt) throw new BidClosedError();
 
-      const msLeft = liveCloseAt.getTime() - now.getTime();
+      const msLeft = liveCloseAt.getTime() - liveNow.getTime();
       const triggerMs = fresh.extensionTriggerMin * 60_000;
       const newEnd =
         fresh.extensionEnabled && msLeft <= triggerMs
           ? new Date(liveCloseAt.getTime() + fresh.extensionMinutes * 60_000)
           : null;
 
+      const sealed = sealBid(fresh.sealPublicKey, amountCents, liveNow);
       const previous = await tx.bid.findFirst({
         where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
         orderBy: { sequence: "desc" },
@@ -102,7 +106,7 @@ export async function placeBidAction(
           commitmentHash: sealed.commitmentHash,
           nonce: "", // withheld until opening
           status: "SEALED",
-          submittedAt: now,
+          submittedAt: liveNow,
           ip,
         },
       });
@@ -115,10 +119,15 @@ export async function placeBidAction(
           },
         });
       }
-      return { sequence: nextSequence, extended: Boolean(newEnd) };
+      return {
+        sequence: nextSequence,
+        extended: Boolean(newEnd),
+        commitmentHash: sealed.commitmentHash,
+      };
     });
     sequence = result.sequence;
     extended = result.extended;
+    commitmentHash = result.commitmentHash;
   } catch (err) {
     if (err instanceof BidClosedError) return { error: "CLOSED" };
     throw err;
@@ -132,7 +141,7 @@ export async function placeBidAction(
     targetId: lotId,
     summary: `${lot.lotNumber} へ封印入札を送信（金額は暗号化して保管）`,
     detail: {
-      commitmentHash: sealed.commitmentHash,
+      commitmentHash,
       sequence,
       softCloseExtended: extended,
     },
