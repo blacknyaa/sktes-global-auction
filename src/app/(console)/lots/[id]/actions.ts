@@ -179,11 +179,20 @@ export async function cancelBidAction(
   if (!lot || lot.status !== "OPEN") return { error: "CLOSED" };
   if (new Date() >= effectiveEndAt(lot)) return { error: "CLOSED" };
 
-  const { count } = await prisma.bid.updateMany({
-    where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
-    data: { status: "CANCELLED", cancelledAt: new Date() },
+  // Re-check the live deadline inside the write, same idea as placeBidAction:
+  // a request that started before close must not cancel after the sealed window.
+  const outcome = await prisma.$transaction(async (tx) => {
+    const fresh = await tx.lot.findUnique({ where: { id: lotId } });
+    if (!fresh || fresh.status !== "OPEN") return "CLOSED" as const;
+    if (new Date() >= effectiveEndAt(fresh)) return "CLOSED" as const;
+    const { count } = await tx.bid.updateMany({
+      where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
+      data: { status: "CANCELLED", cancelledAt: new Date() },
+    });
+    return count === 0 ? ("NO_BID" as const) : ("OK" as const);
   });
-  if (count === 0) return { error: "NO_BID" };
+  if (outcome === "CLOSED") return { error: "CLOSED" };
+  if (outcome === "NO_BID") return { error: "NO_BID" };
 
   await writeAudit({
     actorUserId: user.id,
