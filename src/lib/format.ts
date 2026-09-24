@@ -17,12 +17,17 @@ export function formatMoney(
   currency = "USD",
   locale: Locale = "ja"
 ): string {
+  // Every currency without a minor unit is rounded and shown whole. Singling
+  // out JPY here would leave KRW, VND and IDR - all of them seller-site
+  // currencies - printing a fractional part their notes do not have, while
+  // minorUnits and convertCents already treat them as whole-unit.
+  const whole = ZERO_DECIMAL_CURRENCIES.has(currency);
   const value = cents / 100;
   return new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
     currency,
-    maximumFractionDigits: currency === "JPY" ? 0 : 2,
-  }).format(currency === "JPY" ? Math.round(value) : value);
+    maximumFractionDigits: whole ? 0 : 2,
+  }).format(whole ? Math.round(value) : value);
 }
 
 export function formatNumber(n: number, locale: Locale = "ja"): string {

@@ -17,6 +17,7 @@
     "verify:client-ip": "node --import tsx scripts/verify-client-ip.ts",
     "verify:reset-rate": "node --env-file-if-exists=.env --import tsx scripts/verify-reset-rate.ts",
     "verify:open-seal": "node --env-file-if-exists=.env --import tsx scripts/verify-open-seal.ts",
+    "verify:money-format": "node --import tsx scripts/verify-money-format.ts",
     "e2e": "node scripts/e2e.mjs",
     "db:use-postgres": "node scripts/switch-datasource.mjs postgresql",
     "db:use-sqlite": "node scripts/switch-datasource.mjs sqlite",
@@ -25,7 +26,7 @@
     "audit": "node scripts/audit.mjs",
     "rules": "node scripts/rules.mjs",
     "manual": "node scripts/build-manual.mjs",
-    "verify:all": "npm run db:seed && npm run e2e && npm run audit && npm run flow && npm run rules && npm run concurrency && npm run verify:reset-token && npm run verify:seal && npm run verify:totp-replay && npm run verify:client-ip && npm run verify:reset-rate && npm run verify:open-seal",
+    "verify:all": "npm run db:seed && npm run e2e && npm run audit && npm run flow && npm run rules && npm run concurrency && npm run verify:reset-token && npm run verify:seal && npm run verify:totp-replay && npm run verify:client-ip && npm run verify:reset-rate && npm run verify:open-seal && npm run verify:money-format",
     "concurrency": "node scripts/concurrency.mjs",
     "demo:reset": "node scripts/reset-demo.mjs"
   },
