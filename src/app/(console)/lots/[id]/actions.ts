@@ -323,6 +323,10 @@ export async function answerQuestionAction(formData: FormData): Promise<void> {
     include: { lot: true, user: true },
   });
   if (!question) return;
+  // Same window as askQuestionAction: after close or award the Q&A record freezes.
+  if (question.lot.status !== "OPEN" && question.lot.status !== "SCHEDULED") {
+    return;
+  }
 
   const isOwner = user.companyId === question.lot.sellerCompanyId;
   if (user.role !== "ADMIN" && !isOwner) return;
