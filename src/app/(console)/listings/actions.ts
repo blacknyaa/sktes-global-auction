@@ -141,6 +141,10 @@ export async function createLotAction(
   let serial = (await prisma.lot.count()) + 1;
   const now = new Date();
   const publish = formData.get("publish") === "1";
+  // Same rule as publishLotAction: a past deadline must not go live as OPEN.
+  if (publish && endAt <= now) {
+    return { error: "入札終了日時が過去のため、公開できません。" };
+  }
   const extensionEnabled = formData.get("extensionEnabled") === "on";
   const extensionTriggerMin = Number(formData.get("extensionTriggerMin") ?? 5) || 5;
   const extensionMinutes = Number(formData.get("extensionMinutes") ?? 5) || 5;
