@@ -24,6 +24,9 @@ export async function forgotAction(
 
   // The response is identical whether or not the address exists.
   if (!user) return { sent: true };
+  // Disabled accounts must not receive a reset link. Same generic reply so
+  // the form cannot reveal that the address belongs to a suspended member.
+  if (user.status === "DISABLED") return { sent: true };
 
   const token = await createPasswordResetToken(user.id);
   if (!token) {
