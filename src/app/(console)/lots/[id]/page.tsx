@@ -513,6 +513,7 @@ export default async function LotDetailPage({
                       </p>
                     </div>
                   ) : isSellerSide &&
+                    !isClosed &&
                     (lot.status === "OPEN" || lot.status === "SCHEDULED") ? (
                     <form
                       action={answerQuestionAction}
@@ -540,6 +541,7 @@ export default async function LotDetailPage({
             </ul>
 
             {user.role === "BIDDER" &&
+              !isClosed &&
               (lot.status === "OPEN" || lot.status === "SCHEDULED") && (
               <form action={askQuestionAction} className="border-t border-line p-6">
                 <input type="hidden" name="lotId" value={lot.id} />
