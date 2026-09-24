@@ -300,6 +300,10 @@ export async function markShippedAction(formData: FormData): Promise<void> {
   if (!(await assertAccess(contract, user.role, user.companyId, "SELLER"))) return;
   const shipment = ownShipment(contract, shipmentId);
   if (!shipment) return;
+  // Do not jump from REQUESTED to SHIPPED twice, or rewrite a completed receipt.
+  if (shipment.status !== "REQUESTED" && shipment.status !== "PICKUP_ARRANGED") {
+    return;
+  }
 
   await prisma.shipment.update({
     where: { id: shipment.id },
@@ -351,6 +355,8 @@ export async function confirmReceiptAction(formData: FormData): Promise<void> {
   if (!(await assertAccess(contract, user.role, user.companyId, "BUYER"))) return;
   const shipment = ownShipment(contract, shipmentId);
   if (!shipment) return;
+  // Receipt only makes sense after the seller has marked the goods shipped.
+  if (shipment.status !== "SHIPPED") return;
 
   await prisma.shipment.update({
     where: { id: shipment.id },
