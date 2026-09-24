@@ -21,9 +21,9 @@ export async function GET(
   });
   if (!lot) return new NextResponse("Not found", { status: 404 });
 
-  // Drafts belong to their owner until published.
+  // Drafts and cancelled lots belong to their owner until published / restored.
   if (
-    lot.status === "DRAFT" &&
+    (lot.status === "DRAFT" || lot.status === "CANCELLED") &&
     user.role !== "ADMIN" &&
     user.companyId !== lot.sellerCompanyId
   ) {
