@@ -381,7 +381,20 @@ export async function toggleWatchAction(formData: FormData): Promise<void> {
   const existing = await prisma.watch.findUnique({
     where: { userId_lotId: { userId: user.id, lotId } },
   });
-  if (existing) await prisma.watch.delete({ where: { id: existing.id } });
-  else await prisma.watch.create({ data: { userId: user.id, lotId } });
+  if (existing) {
+    await prisma.watch.delete({ where: { id: existing.id } });
+  } else {
+    const lot = await prisma.lot.findUnique({ where: { id: lotId } });
+    if (!lot) return;
+    // Same visibility as the lot page / list: drafts and cancelled lots are
+    // not browsable by bidders, so they must not be watchable by id either.
+    if (
+      user.role === "BIDDER" &&
+      (lot.status === "DRAFT" || lot.status === "CANCELLED")
+    ) {
+      return;
+    }
+    await prisma.watch.create({ data: { userId: user.id, lotId } });
+  }
   revalidatePath(`/lots/${lotId}`);
 }
