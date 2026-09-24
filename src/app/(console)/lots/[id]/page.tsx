@@ -379,6 +379,8 @@ export default async function LotDetailPage({
                               lot.status === "CLOSED" &&
                               lot.openedAt && (
                               <td>
+                                {lot.reserveCents == null ||
+                                (b.amountCents ?? 0) >= lot.reserveCents ? (
                                 <form action={awardLotAction} className="flex gap-1.5">
                                   <input type="hidden" name="lotId" value={lot.id} />
                                   <input type="hidden" name="bidId" value={b.id} />
@@ -401,6 +403,11 @@ export default async function LotDetailPage({
                                     {dict.bid.awardSelect}
                                   </SubmitButton>
                                 </form>
+                                ) : (
+                                  <span className="text-xs text-muted">
+                                    {dict.listing.reserve}
+                                  </span>
+                                )}
                               </td>
                             )}
                           </tr>
