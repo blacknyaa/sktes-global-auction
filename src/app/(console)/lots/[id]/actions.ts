@@ -286,9 +286,9 @@ export async function openSealAction(formData: FormData): Promise<void> {
     action: "LOT_OPEN",
     targetType: "Lot",
     targetId: lotId,
-    summary: `${lot.lotNumber} の封印を解除（${revelations.length}件を開封、ハッシュ一致 ${opened.verified} / 不一致 ${opened.failed}）`,
+    summary: `${lot.lotNumber} の封印を解除（${opened.opened}件を開封、ハッシュ一致 ${opened.verified} / 不一致 ${opened.failed}）`,
     detail: {
-      opened: revelations.length,
+      opened: opened.opened,
       verified: opened.verified,
       failed: opened.failed,
     },
