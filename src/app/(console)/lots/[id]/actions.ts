@@ -308,6 +308,9 @@ export async function askQuestionAction(formData: FormData): Promise<void> {
   if (!lot) return;
   // Q&A is for active bidding; closed or awarded lots keep a frozen record.
   if (lot.status !== "OPEN" && lot.status !== "SCHEDULED") return;
+  // Status can lag the clock by the lifecycle sweep. Match the bid panel:
+  // once effectiveEndAt has passed, the record freezes even while still OPEN.
+  if (new Date() >= effectiveEndAt(lot)) return;
   if (user.role !== "BIDDER") return;
 
   await prisma.question.create({
@@ -347,6 +350,7 @@ export async function answerQuestionAction(formData: FormData): Promise<void> {
   if (question.lot.status !== "OPEN" && question.lot.status !== "SCHEDULED") {
     return;
   }
+  if (new Date() >= effectiveEndAt(question.lot)) return;
 
   const isOwner = user.companyId === question.lot.sellerCompanyId;
   if (user.role !== "ADMIN" && !isOwner) return;
