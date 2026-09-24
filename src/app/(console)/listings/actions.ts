@@ -7,7 +7,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
-import { createLotSeal } from "@/lib/seal";
+import { createLotSeal, effectiveEndAt } from "@/lib/seal";
 import { localInputToUtc } from "@/lib/datetime";
 import { parseManifest, type ManifestRow } from "@/lib/manifest";
 import { ALLOWED_SHEET_TYPES, saveUpload, validateUpload } from "@/lib/storage";
@@ -269,6 +269,11 @@ export async function publishLotAction(formData: FormData): Promise<void> {
   if (!["DRAFT", "SCHEDULED", "CANCELLED"].includes(lot.status)) return;
 
   const now = new Date();
+  // A cancelled or draft lot whose deadline has already passed must not be
+  // flipped to OPEN — placeBid would then accept bids after the sealed window.
+  if (effectiveEndAt(lot) <= now) return;
+  if (!lot.sealPublicKey) return;
+
   await prisma.lot.update({
     where: { id: lotId },
     data: {
