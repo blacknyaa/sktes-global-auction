@@ -44,7 +44,10 @@ export async function setMemberStatusAction(formData: FormData): Promise<void> {
   if (!company) return;
 
   let bidLimitCents = company.bidLimitCents;
-  if (status === "PROVISIONAL" && rawLimit) {
+  if (status === "PROVISIONAL") {
+    // Provisional means capped bidding. An empty or cleared limit must not
+    // keep a prior null (unlimited) from APPROVED and let them bid uncapped.
+    if (!rawLimit) return;
     const dollars = Number(rawLimit);
     if (!Number.isFinite(dollars) || dollars < 0) return;
     bidLimitCents = Math.round(dollars * 100);
