@@ -146,7 +146,8 @@ export default async function ListingsPage({
                   </td>
                   <td>
                     <div className="flex justify-end gap-1.5">
-                      {["DRAFT", "SCHEDULED", "CANCELLED"].includes(lot.status) && (
+                      {["DRAFT", "SCHEDULED", "CANCELLED"].includes(lot.status) &&
+                        !lot.openedAt && (
                         <form action={publishLotAction}>
                           <input type="hidden" name="lotId" value={lot.id} />
                           <SubmitButton
@@ -160,7 +161,8 @@ export default async function ListingsPage({
                           </SubmitButton>
                         </form>
                       )}
-                      {!["AWARDED", "CANCELLED"].includes(lot.status) && (
+                      {!["AWARDED", "CANCELLED"].includes(lot.status) &&
+                        !lot.openedAt && (
                         <form action={cancelLotAction}>
                           <input type="hidden" name="lotId" value={lot.id} />
                           <input type="hidden" name="cancelReason" defaultValue="" />
