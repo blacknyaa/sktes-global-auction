@@ -107,7 +107,7 @@ export async function selectPaymentMethodAction(formData: FormData): Promise<voi
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.company?.name ?? user.name,
-    action: "ADMIN_ACTION",
+    action: "PAYMENT_METHOD",
     targetType: "Contract",
     targetId: contractId,
     summary: `${contract.contractNo} の支払方法を ${paymentMethod} に設定`,
