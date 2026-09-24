@@ -267,6 +267,9 @@ export async function publishLotAction(formData: FormData): Promise<void> {
   if (!lot) return;
   if (user.role !== "ADMIN" && user.companyId !== lot.sellerCompanyId) return;
   if (!["DRAFT", "SCHEDULED", "CANCELLED"].includes(lot.status)) return;
+  // Once the seal has been opened, bids are REVEALED. Republishing would put
+  // an already-readable lot back into OPEN without clearing openedAt.
+  if (lot.openedAt) return;
 
   const now = new Date();
   // A cancelled or draft lot whose deadline has already passed must not be
@@ -303,6 +306,9 @@ export async function cancelLotAction(formData: FormData): Promise<void> {
   if (!lot) return;
   if (user.role !== "ADMIN" && user.companyId !== lot.sellerCompanyId) return;
   if (["AWARDED", "COMPLETED"].includes(lot.status)) return;
+  // After openSeal, amounts are revealed and the lot stays CLOSED. Cancelling
+  // then would still leave awardLotAction able to pick a winner on a cancelled lot.
+  if (lot.openedAt) return;
 
   await prisma.lot.update({
     where: { id: lotId },

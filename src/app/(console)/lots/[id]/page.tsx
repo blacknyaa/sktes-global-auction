@@ -332,7 +332,10 @@ export default async function LotDetailPage({
                         <th className="text-right">{dict.common.amount}</th>
                         <th>{dict.bid.verify}</th>
                         <th>{dict.common.createdAt}</th>
-                        {isSellerSide && !lot.award && <th></th>}
+                        {isSellerSide &&
+                          !lot.award &&
+                          lot.status === "CLOSED" &&
+                          lot.openedAt && <th></th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -371,7 +374,10 @@ export default async function LotDetailPage({
                             <td className="whitespace-nowrap text-xs text-muted">
                               {formatDateTime(b.submittedAt, user.timezone, locale)}
                             </td>
-                            {isSellerSide && !lot.award && (
+                            {isSellerSide &&
+                              !lot.award &&
+                              lot.status === "CLOSED" &&
+                              lot.openedAt && (
                               <td>
                                 <form action={awardLotAction} className="flex gap-1.5">
                                   <input type="hidden" name="lotId" value={lot.id} />

@@ -47,6 +47,9 @@ export async function awardLotAction(formData: FormData): Promise<void> {
     },
   });
   if (!lot || lot.award) return;
+  // Only a closed, opened lot can be awarded. A cancelled-after-open lot must
+  // not still accept a winner pick.
+  if (lot.status !== "CLOSED" || !lot.openedAt) return;
 
   const isOwner = user.companyId === lot.sellerCompanyId;
   if (user.role !== "ADMIN" && !(user.role === "SELLER" && isOwner)) return;
