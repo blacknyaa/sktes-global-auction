@@ -242,10 +242,9 @@ export async function requestShipmentAction(formData: FormData): Promise<void> {
       await tx.contract.update({
         where: { id: contractId },
         data: {
-          status:
-            "AWAITING_PAYMENT" === contract.status
-              ? contract.status
-              : "IN_CONTRACT",
+          // Invoice is already PAID (checked above). Keeping AWAITING_PAYMENT
+          // here would leave the contract looking unpaid after a ship request.
+          status: "IN_CONTRACT",
         },
       });
       return true;
