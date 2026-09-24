@@ -86,6 +86,11 @@ export async function selectPaymentMethodAction(formData: FormData): Promise<voi
 
   const invoice = contract.invoices[0];
   if (!invoice || invoice.status === "PAID") return;
+  // Shipping underway means the commercial terms are past method selection.
+  if (contract.shipments.length > 0) return;
+  if (contract.status !== "AWARDED" && contract.status !== "AWAITING_PAYMENT") {
+    return;
+  }
 
   const limit = await cardLimitCents();
   if (
