@@ -12,6 +12,7 @@ import {
   sealBid,
   SealNotOpenableError,
 } from "@/lib/seal";
+import { commitLotOpening } from "@/lib/lotOpen";
 import type { Locale } from "@/lib/constants";
 
 export type BidState = { ok?: string; error?: string };
@@ -200,6 +201,10 @@ export async function cancelBidAction(
 /**
  * The opening ceremony. Unseals the lot key, decrypts every bid, verifies each
  * commitment hash, and writes the amounts back. Refuses to run early.
+ *
+ * Claiming `openedAt` in the same write that records the reveals is what stops
+ * a second click from seeing zero SEALED rows and rewriting the lot as FAILED
+ * (or stomping an award that already moved the status off OPEN/CLOSED).
  */
 export async function openSealAction(formData: FormData): Promise<void> {
   const user = await requireUser();
@@ -209,7 +214,9 @@ export async function openSealAction(formData: FormData): Promise<void> {
     where: { id: lotId },
     include: { bids: { where: { status: "SEALED" } }, sellerCompany: true },
   });
-  if (!lot) return;
+  // CLOSED is normal once the deadline tick has run; only skip if already opened.
+  if (!lot || lot.openedAt) return;
+  if (lot.status !== "OPEN" && lot.status !== "CLOSED") return;
 
   const isOwner = user.companyId === lot.sellerCompanyId;
   if (user.role !== "ADMIN" && !(user.role === "SELLER" && isOwner)) return;
@@ -232,32 +239,24 @@ export async function openSealAction(formData: FormData): Promise<void> {
     throw err;
   }
 
-  let verified = 0;
-  let failed = 0;
-
-  for (const bid of lot.bids) {
+  const revelations = lot.bids.map((bid) => {
     const revealed = revealBid(privateKey, bid.ciphertext, bid.commitmentHash);
-    if (revealed.commitmentOk) verified++;
-    else failed++;
-    await prisma.bid.update({
-      where: { id: bid.id },
-      data: {
-        amountCents: revealed.amountCents,
-        nonce: revealed.nonce,
-        status: "REVEALED",
-        revealedAt: new Date(),
-      },
-    });
-  }
-
-  await prisma.lot.update({
-    where: { id: lotId },
-    data: {
-      status: lot.bids.length > 0 ? "CLOSED" : "FAILED",
-      openedAt: new Date(),
-      openedById: user.id,
-    },
+    return {
+      bidId: bid.id,
+      amountCents: revealed.amountCents,
+      nonce: revealed.nonce,
+      commitmentOk: revealed.commitmentOk,
+    };
   });
+
+  const opened = await prisma.$transaction((tx) =>
+    commitLotOpening(tx, {
+      lotId,
+      openedById: user.id,
+      revelations,
+    })
+  );
+  if (!opened) return;
 
   await writeAudit({
     actorUserId: user.id,
@@ -265,8 +264,12 @@ export async function openSealAction(formData: FormData): Promise<void> {
     action: "LOT_OPEN",
     targetType: "Lot",
     targetId: lotId,
-    summary: `${lot.lotNumber} の封印を解除（${lot.bids.length}件を開封、ハッシュ一致 ${verified} / 不一致 ${failed}）`,
-    detail: { opened: lot.bids.length, verified, failed },
+    summary: `${lot.lotNumber} の封印を解除（${revelations.length}件を開封、ハッシュ一致 ${opened.verified} / 不一致 ${opened.failed}）`,
+    detail: {
+      opened: revelations.length,
+      verified: opened.verified,
+      failed: opened.failed,
+    },
   });
 
   revalidatePath(`/lots/${lotId}`);
@@ -283,7 +286,8 @@ export async function askQuestionAction(formData: FormData): Promise<void> {
     include: { createdBy: true },
   });
   if (!lot) return;
-  if (lot.status === "DRAFT" || lot.status === "CANCELLED") return;
+  // Q&A is for active bidding; closed or awarded lots keep a frozen record.
+  if (lot.status !== "OPEN" && lot.status !== "SCHEDULED") return;
   if (user.role !== "BIDDER") return;
 
   await prisma.question.create({
