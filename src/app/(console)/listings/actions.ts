@@ -314,14 +314,23 @@ export async function cancelLotAction(formData: FormData): Promise<void> {
   if (lot.status === "CLOSED" || lot.status === "FAILED") return;
   if (lot.status === "OPEN" && effectiveEndAt(lot) <= new Date()) return;
 
-  await prisma.lot.update({
-    where: { id: lotId },
-    data: {
-      status: "CANCELLED",
-      cancelledAt: new Date(),
-      cancelReason: reason || "出品者都合による取り下げ",
-    },
-  });
+  const now = new Date();
+  // Withdrawing the lot must void live sealed bids in the same write. Leaving
+  // them SEALED lets a later republish reopen the auction with those amounts.
+  await prisma.$transaction([
+    prisma.lot.update({
+      where: { id: lotId },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: now,
+        cancelReason: reason || "出品者都合による取り下げ",
+      },
+    }),
+    prisma.bid.updateMany({
+      where: { lotId, status: "SEALED" },
+      data: { status: "CANCELLED", cancelledAt: now },
+    }),
+  ]);
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.company?.name ?? user.name,
