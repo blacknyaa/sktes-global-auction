@@ -70,6 +70,9 @@ export async function awardLotAction(formData: FormData): Promise<void> {
   const buyerCountry = winner.bidderCompany.country;
   const isJapanBuyer = buyerCountry.code === "JP";
   const subtotal = winner.amountCents ?? 0;
+  // Reserve is the seller's floor (not shown to bidders). Confirming below it
+  // would complete a sale the listing itself said must not go through.
+  if (lot.reserveCents != null && subtotal < lot.reserveCents) return;
   const tax = isJapanBuyer ? Math.round(subtotal * JP_CONSUMPTION_TAX_RATE) : 0;
   const qualified = await prisma.systemSetting.findUnique({
     where: { key: "qualified_invoice_number" },
