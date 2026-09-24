@@ -141,7 +141,8 @@ export async function revokeOtherSessionsAction(): Promise<void> {
   await writeAudit({
     actorUserId: user.id,
     actorLabel: user.name,
-    action: "ADMIN_ACTION",
+    // Self-service sign-out of other devices is not an admin privilege.
+    action: "SESSION_REVOKE",
     summary: `${user.email} が他端末のセッションを破棄しました`,
   });
   revalidatePath("/settings/security");
