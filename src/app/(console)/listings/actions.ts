@@ -309,6 +309,10 @@ export async function cancelLotAction(formData: FormData): Promise<void> {
   // After openSeal, amounts are revealed and the lot stays CLOSED. Cancelling
   // then would still leave awardLotAction able to pick a winner on a cancelled lot.
   if (lot.openedAt) return;
+  // Past the deadline the sealed bids belong to winner selection. Cancelling
+  // then would void them without opening or awarding.
+  if (lot.status === "CLOSED" || lot.status === "FAILED") return;
+  if (lot.status === "OPEN" && effectiveEndAt(lot) <= new Date()) return;
 
   await prisma.lot.update({
     where: { id: lotId },

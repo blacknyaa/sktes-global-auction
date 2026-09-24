@@ -10,6 +10,7 @@ import { PromptSubmitButton, SubmitButton } from "@/components/SubmitButton";
 import { LOT_STATUSES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/datetime";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { effectiveEndAt } from "@/lib/seal";
 import { cancelLotAction, publishLotAction } from "./actions";
 
 export const metadata: Metadata = { title: "出品管理" };
@@ -50,6 +51,7 @@ export default async function ListingsPage({
       _count: true,
     }),
   ]);
+  const now = new Date();
 
   return (
     <>
@@ -161,8 +163,9 @@ export default async function ListingsPage({
                           </SubmitButton>
                         </form>
                       )}
-                      {!["AWARDED", "CANCELLED"].includes(lot.status) &&
-                        !lot.openedAt && (
+                      {!["AWARDED", "CANCELLED", "CLOSED", "FAILED"].includes(lot.status) &&
+                        !lot.openedAt &&
+                        !(lot.status === "OPEN" && effectiveEndAt(lot) <= now) && (
                         <form action={cancelLotAction}>
                           <input type="hidden" name="lotId" value={lot.id} />
                           <input type="hidden" name="cancelReason" defaultValue="" />
