@@ -21,6 +21,11 @@ export type BidRevelation = {
  * Soft-close extensions are pinned in the same claim: a late bid that moves
  * `extendedUntil` after the opener's snapshot must make the update miss, so
  * the auction stays sealed for the rest of the window.
+ *
+ * The returned counts describe rows this call actually wrote. A bid withdrawn
+ * between the caller's snapshot and this transaction no longer matches
+ * `status: SEALED`, so it is left out rather than reported as opened - the
+ * audit entry built from these numbers has to match what is in the table.
  */
 export async function commitLotOpening(
   tx: Prisma.TransactionClient,
@@ -30,7 +35,7 @@ export async function commitLotOpening(
     revelations: BidRevelation[];
     now?: Date;
   }
-): Promise<{ verified: number; failed: number } | null> {
+): Promise<{ opened: number; verified: number; failed: number } | null> {
   const now = input.now ?? new Date();
   const fresh = await tx.lot.findUnique({ where: { id: input.lotId } });
   if (!fresh || fresh.openedAt) return null;
@@ -56,9 +61,7 @@ export async function commitLotOpening(
   let verified = 0;
   let failed = 0;
   for (const r of input.revelations) {
-    if (r.commitmentOk) verified++;
-    else failed++;
-    await tx.bid.updateMany({
+    const written = await tx.bid.updateMany({
       where: { id: r.bidId, status: "SEALED" },
       data: {
         amountCents: r.amountCents,
@@ -67,6 +70,9 @@ export async function commitLotOpening(
         revealedAt: now,
       },
     });
+    if (written.count === 0) continue;
+    if (r.commitmentOk) verified++;
+    else failed++;
   }
-  return { verified, failed };
+  return { opened: verified + failed, verified, failed };
 }
