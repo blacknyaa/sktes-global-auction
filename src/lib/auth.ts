@@ -413,8 +413,12 @@ export async function consumePasswordResetToken(
 ): Promise<boolean> {
   const row = await prisma.passwordResetToken.findUnique({
     where: { tokenHash: sha256(token) },
+    include: { user: { select: { status: true } } },
   });
   if (!row || row.usedAt || row.expiresAt < new Date()) return false;
+  // Suspended / expelled members stay DISABLED. Unlocking LOCKED is fine;
+  // forcing ACTIVE would let them sign in again after admin disabled them.
+  if (row.user.status === "DISABLED") return false;
 
   const passwordHash = await hashPassword(newPassword);
   return prisma.$transaction(async (tx) => {
@@ -427,8 +431,10 @@ export async function consumePasswordResetToken(
     });
     if (count === 0) return false;
 
-    await tx.user.update({
-      where: { id: row.userId },
+    // Re-check status inside the write so a suspend that lands between the
+    // read and here cannot be undone by the reset.
+    const { count: updated } = await tx.user.updateMany({
+      where: { id: row.userId, status: { not: "DISABLED" } },
       data: {
         passwordHash,
         failedLoginCount: 0,
@@ -436,6 +442,8 @@ export async function consumePasswordResetToken(
         status: "ACTIVE",
       },
     });
+    if (updated === 0) return false;
+
     // Every other session is dropped, because a password reset is exactly the
     // moment you want any hijacked session to stop working.
     await tx.session.deleteMany({ where: { userId: row.userId } });
