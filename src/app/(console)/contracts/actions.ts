@@ -400,6 +400,7 @@ export async function reportDefectAction(formData: FormData): Promise<void> {
   if (!(await assertAccess(contract, user.role, user.companyId, "BUYER"))) return;
   const shipment = ownShipment(contract, shipmentId);
   if (!shipment) return;
+  if (shipment.status !== "SHIPPED" && shipment.status !== "RECEIVED") return;
 
   await prisma.defectReport.create({
     data: {
