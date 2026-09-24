@@ -505,7 +505,8 @@ export default async function LotDetailPage({
                         {formatDateTime(q.answer.createdAt, user.timezone, locale)}
                       </p>
                     </div>
-                  ) : isSellerSide ? (
+                  ) : isSellerSide &&
+                    (lot.status === "OPEN" || lot.status === "SCHEDULED") ? (
                     <form
                       action={answerQuestionAction}
                       className="mt-3 flex flex-wrap gap-2"
@@ -531,7 +532,8 @@ export default async function LotDetailPage({
               )}
             </ul>
 
-            {user.role === "BIDDER" && (
+            {user.role === "BIDDER" &&
+              (lot.status === "OPEN" || lot.status === "SCHEDULED") && (
               <form action={askQuestionAction} className="border-t border-line p-6">
                 <input type="hidden" name="lotId" value={lot.id} />
                 <textarea
