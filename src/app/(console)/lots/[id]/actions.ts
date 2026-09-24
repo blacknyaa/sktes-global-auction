@@ -173,7 +173,7 @@ export async function cancelBidAction(
     where: { lotId, bidderCompanyId: user.companyId!, status: "SEALED" },
     data: { status: "CANCELLED", cancelledAt: new Date() },
   });
-  if (count === 0) return { error: "AMOUNT" };
+  if (count === 0) return { error: "NO_BID" };
 
   await writeAudit({
     actorUserId: user.id,

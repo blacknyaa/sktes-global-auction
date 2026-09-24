@@ -387,6 +387,7 @@ export const zh: Dictionary = {
     errNotApproved: "尚未完成正式注册，无法投标。",
     errOwnLot: "不能对本公司上架的标的投标。",
     errAmount: "请输入正确的投标金额。",
+    errNoBid: "没有可撤回的投标。",
     bidsSealed: "密封中的投标",
     bidsRevealed: "已开封的投标",
     openSeal: "已截止，解除密封",
