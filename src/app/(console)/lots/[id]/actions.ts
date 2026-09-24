@@ -221,9 +221,16 @@ export async function openSealAction(formData: FormData): Promise<void> {
   const isOwner = user.companyId === lot.sellerCompanyId;
   if (user.role !== "ADMIN" && !(user.role === "SELLER" && isOwner)) return;
 
+  const now = new Date();
+  // Re-read so soft-close extensions that landed after the first load are
+  // visible to the crypto time-gate (commitLotOpening pins them again).
+  const live = await prisma.lot.findUnique({ where: { id: lotId } });
+  if (!live || live.openedAt) return;
+  if (live.status !== "OPEN" && live.status !== "CLOSED") return;
+
   let privateKey;
   try {
-    privateKey = openSeal(lot, new Date());
+    privateKey = openSeal(live, now);
   } catch (err) {
     if (err instanceof SealNotOpenableError) {
       await writeAudit({
@@ -239,7 +246,10 @@ export async function openSealAction(formData: FormData): Promise<void> {
     throw err;
   }
 
-  const revelations = lot.bids.map((bid) => {
+  const sealedBids = await prisma.bid.findMany({
+    where: { lotId, status: "SEALED" },
+  });
+  const revelations = sealedBids.map((bid) => {
     const revealed = revealBid(privateKey, bid.ciphertext, bid.commitmentHash);
     return {
       bidId: bid.id,
@@ -254,6 +264,7 @@ export async function openSealAction(formData: FormData): Promise<void> {
       lotId,
       openedById: user.id,
       revelations,
+      now,
     })
   );
   if (!opened) return;

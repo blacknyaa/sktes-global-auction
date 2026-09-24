@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { effectiveEndAt } from "./seal";
 
 export type BidRevelation = {
   bidId: string;
@@ -16,6 +17,10 @@ export type BidRevelation = {
  * or a retry after every SEALED row is already gone — must leave the lot
  * alone. Without that guard, the second call sees zero SEALED rows and
  * rewrites a successful open (or an award) as FAILED.
+ *
+ * Soft-close extensions are pinned in the same claim: a late bid that moves
+ * `extendedUntil` after the opener's snapshot must make the update miss, so
+ * the auction stays sealed for the rest of the window.
  */
 export async function commitLotOpening(
   tx: Prisma.TransactionClient,
@@ -27,11 +32,18 @@ export async function commitLotOpening(
   }
 ): Promise<{ verified: number; failed: number } | null> {
   const now = input.now ?? new Date();
+  const fresh = await tx.lot.findUnique({ where: { id: input.lotId } });
+  if (!fresh || fresh.openedAt) return null;
+  if (fresh.status !== "OPEN" && fresh.status !== "CLOSED") return null;
+  if (effectiveEndAt(fresh) > now) return null;
+
   const { count } = await tx.lot.updateMany({
     where: {
       id: input.lotId,
       openedAt: null,
       status: { in: ["OPEN", "CLOSED"] },
+      endAt: fresh.endAt,
+      extendedUntil: fresh.extendedUntil,
     },
     data: {
       status: input.revelations.length > 0 ? "CLOSED" : "FAILED",
