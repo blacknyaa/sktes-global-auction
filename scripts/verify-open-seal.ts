@@ -78,10 +78,33 @@ async function main() {
     },
   });
 
+  // A bid pulled before the ceremony. The opener's snapshot is taken outside
+  // the transaction, so a revelation for a withdrawn bid can still reach
+  // commitLotOpening - it must be skipped rather than counted and revealed.
+  const withdrawnSealed = sealBid(seal.sealPublicKey, 99_999, new Date(stamp - 90_000));
+  const withdrawn = await prisma.bid.create({
+    data: {
+      lotId: lot.id,
+      bidderCompanyId: buyer.id,
+      userId: buyer.users[0].id,
+      sequence: 2,
+      ciphertext: withdrawnSealed.ciphertext,
+      commitmentHash: withdrawnSealed.commitmentHash,
+      nonce: "",
+      status: "WITHDRAWN",
+    },
+  });
+
   const revelation = {
     bidId: bid.id,
     amountCents: 12_345,
     nonce: "deadbeef",
+    commitmentOk: true,
+  };
+  const staleRevelation = {
+    bidId: withdrawn.id,
+    amountCents: 99_999,
+    nonce: "stale",
     commitmentOk: true,
   };
 
@@ -92,29 +115,42 @@ async function main() {
         commitLotOpening(tx, {
           lotId: lot.id,
           openedById: seller.users[0].id,
-          revelations: [revelation],
+          revelations: [revelation, staleRevelation],
         })
       ),
       prisma.$transaction((tx) =>
         commitLotOpening(tx, {
           lotId: lot.id,
           openedById: seller.users[0].id,
-          revelations: [revelation],
+          revelations: [revelation, staleRevelation],
         })
       ),
     ]);
     const wins = raced.filter(Boolean);
     check("exactly one opener claims the lot", wins.length === 1, String(wins.length));
+    check(
+      "the withdrawn bid is not counted as opened",
+      wins[0]?.opened === 1 && wins[0]?.verified === 1 && wins[0]?.failed === 0,
+      `opened=${wins[0]?.opened} verified=${wins[0]?.verified} failed=${wins[0]?.failed}`
+    );
 
     const after = await prisma.lot.findUnique({ where: { id: lot.id } });
     check("lot status is CLOSED, not FAILED", after?.status === "CLOSED", after?.status);
     check("openedAt is set once", Boolean(after?.openedAt));
 
-    const bids = await prisma.bid.findMany({ where: { lotId: lot.id } });
+    const bids = await prisma.bid.findMany({
+      where: { lotId: lot.id },
+      orderBy: { sequence: "asc" },
+    });
     check(
       "the sealed bid was revealed once",
-      bids.length === 1 && bids[0].status === "REVEALED" && bids[0].amountCents === 12_345,
+      bids.length === 2 && bids[0].status === "REVEALED" && bids[0].amountCents === 12_345,
       bids.map((b) => `${b.status}:${b.amountCents}`).join(",")
+    );
+    check(
+      "the withdrawn bid stays withdrawn and sealed",
+      bids[1]?.status === "WITHDRAWN" && bids[1]?.amountCents !== 99_999,
+      `${bids[1]?.status}:${bids[1]?.amountCents}`
     );
 
     console.log("\n=== a late retry after bids are already revealed ===\n");
